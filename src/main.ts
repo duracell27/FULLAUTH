@@ -5,8 +5,8 @@ import * as cookieParser from 'cookie-parser'
 import { ValidationPipe } from '@nestjs/common'
 import IORedis from 'ioredis'
 import * as session from 'express-session'
-import { ms, StringValue } from 'libs/common/utils/ms.util'
-import { parseBoolean } from 'libs/common/utils/parse-boolean'
+import { ms, StringValue } from '@/libs/common/utils/ms.util'
+import { parseBoolean } from '@/libs/common/utils/parse-boolean'
 import { RedisStore } from 'connect-redis'
 
 async function bootstrap() {
