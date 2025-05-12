@@ -15,6 +15,7 @@ import { ConfigService } from '@nestjs/config'
 import { ProviderService } from './provider/provider.service'
 import { PrismaService } from '@/prisma/prisma.service'
 import { EmailConfirmationService } from './email-confirmation/email-confirmation.service'
+import { TwoFactorAuthService } from './two-factor-auth/two-factor-auth.service'
 
 @Injectable()
 export class AuthService {
@@ -23,10 +24,11 @@ export class AuthService {
 		private readonly configService: ConfigService,
 		private readonly providerService: ProviderService,
 		private readonly prismaService: PrismaService,
-		private readonly emailConfirmationService: EmailConfirmationService
+		private readonly emailConfirmationService: EmailConfirmationService,
+		private readonly twoFactorAuthService: TwoFactorAuthService
 	) {}
 
-	public async register(req: Request, dto: RegisterDto) {
+	public async register(dto: RegisterDto) {
 		const isExists = await this.userService.findByEmail(dto.email)
 		if (isExists) {
 			throw new ConflictException('User with this email already exists')
@@ -41,7 +43,7 @@ export class AuthService {
 			false
 		)
 
-		await this.emailConfirmationService.sendVerificationToken(newUser)
+		await this.emailConfirmationService.sendVerificationToken(newUser.email)
 
 		return {
 			message:
@@ -62,8 +64,26 @@ export class AuthService {
 		}
 
 		if (!user.isVerified) {
-			await this.emailConfirmationService.sendVerificationToken(user)
+			await this.emailConfirmationService.sendVerificationToken(
+				user.email
+			)
 			throw new UnauthorizedException('Email not verified')
+		}
+
+		if (user.isTwoFactorEnabled) {
+			if (!dto.code) {
+				await this.twoFactorAuthService.sendTwoFacktorToken(user.email)
+
+				return {
+					message:
+						'Please enter the two-factor authentication code from your email.'
+				}
+			}
+
+			await this.twoFactorAuthService.validateTwoFactorToken(
+				user.email,
+				dto.code
+			)
 		}
 
 		return this.saveSession(req, user)
