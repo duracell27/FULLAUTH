@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-
 }
 
 datasource db {
@@ -28,6 +27,9 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   accounts Account[]
+
+  sentFriendRequests FriendRequests[] @relation("SentFriendRequests")
+  receivedFriendRequests FriendRequests[] @relation("ReceivedFriendRequests")
 
   @@map("users")
 }
@@ -63,6 +65,23 @@ model Token {
   @@map("tokens")
 }
 
+model FriendRequests {
+  id String @id @default(cuid())
+
+  senderId   String @map("sender_id")
+  receiverId String @map("receiver_id")
+
+  status FriendStatus
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sender   User @relation("SentFriendRequests", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id])
+
+  @@map("friend_requests")
+}
+
 enum UserRole {
   REGULAR
   ADMIN
@@ -77,4 +96,10 @@ enum TokenType {
   VERIFIFCATION
   TWO_FACTOR
   PASSWORD_RESET
+}
+
+enum FriendStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }

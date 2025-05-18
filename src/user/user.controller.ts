@@ -28,6 +28,13 @@ export class UserController {
 
 	@Authorization()
 	@HttpCode(HttpStatus.OK)
+	@Get('by-id-safe/:id')
+	public async finByIdSafe(@Param('id') userId: string) {
+		return this.userService.findByIdSafe(userId)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
 	@Get('by-id/:id')
 	public async finById(@Param('id') userId: string) {
 		return this.userService.findById(userId)
