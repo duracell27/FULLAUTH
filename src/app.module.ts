@@ -10,6 +10,8 @@ import { EmailConfirmationModule } from './auth/email-confirmation/email-confirm
 import { PasswordRecoveryModule } from './auth/password-recovery/password-recovery.module'
 import { TwoFactorAuthModule } from './auth/two-factor-auth/two-factor-auth.module'
 import { FriendsModule } from './friends/friends.module'
+import { GroupsModule } from './groups/groups.module'
+import { GroupMembersModule } from './group-members/group-members.module'
 
 @Module({
 	imports: [
@@ -25,7 +27,9 @@ import { FriendsModule } from './friends/friends.module'
 		EmailConfirmationModule,
 		PasswordRecoveryModule,
 		TwoFactorAuthModule,
-		FriendsModule
+		FriendsModule,
+		GroupsModule,
+		GroupMembersModule
 	]
 })
 export class AppModule {}

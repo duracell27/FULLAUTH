@@ -118,6 +118,7 @@ export class AuthService {
 			'',
 			profile.name,
 			profile.picture,
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 			AuthMethod[profile.provider.toUpperCase()],
 			true
 		)

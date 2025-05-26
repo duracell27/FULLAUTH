@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { ConfigService } from '@nestjs/config'
@@ -15,6 +17,10 @@ async function bootstrap() {
 	const config = app.get(ConfigService)
 	const redis = new IORedis(config.getOrThrow<string>('REDIS_URL'))
 	app.use(cookieParser(config.getOrThrow<string>('COOKIES_SECRET')))
+
+	const expressApp = app.getHttpAdapter().getInstance()
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+	expressApp.set('trust proxy', 1)
 
 	app.useGlobalPipes(
 		new ValidationPipe({
@@ -52,4 +58,5 @@ async function bootstrap() {
 	})
 	await app.listen(config.getOrThrow<number>('APPLICATION_PORT'))
 }
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 bootstrap()

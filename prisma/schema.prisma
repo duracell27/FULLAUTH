@@ -28,8 +28,10 @@ model User {
 
   accounts Account[]
 
-  sentFriendRequests FriendRequests[] @relation("SentFriendRequests")
+  sentFriendRequests     FriendRequests[] @relation("SentFriendRequests")
   receivedFriendRequests FriendRequests[] @relation("ReceivedFriendRequests")
+
+  groupMemberships GroupMember[]
 
   @@map("users")
 }
@@ -82,6 +84,36 @@ model FriendRequests {
   @@map("friend_requests")
 }
 
+model GroupEntity {
+  id         String   @id @default(uuid())
+  name       String
+  avatarUrl  String?  @map("avatar_url")
+  isLocked   Boolean  @default(false) @map("is_locked") // Чи група заблокована від змін
+  isFinished Boolean  @default(false) @map("is_finished") // Чи група вже завершена
+  eventDate  DateTime @default(now()) @map("date")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  members GroupMember[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  userId   String    @map("user_id")
+  groupId  String    @map("group_id")
+  role     GroupRole @default(MEMBER) // Роль у групі
+  joinedAt DateTime  @default(now()) @map("joined_at")
+
+  // Зв'язки
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group GroupEntity @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  // Композитний ключ, щоб один юзер міг бути в групі лише раз
+  @@id([userId, groupId])
+  @@map("group_members")
+}
+
 enum UserRole {
   REGULAR
   ADMIN
@@ -102,4 +134,9 @@ enum FriendStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+enum GroupRole {
+  ADMIN
+  MEMBER
 }
