@@ -2,6 +2,7 @@ import {
 	Body,
 	Controller,
 	Delete,
+	Get,
 	HttpCode,
 	HttpStatus,
 	Param,
@@ -17,6 +18,16 @@ import { UpdateGroupDto } from './dto/UpdateGroupDto'
 @Controller('groups')
 export class GroupsController {
 	constructor(private readonly groupsService: GroupsService) {}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Get('/:groupId')
+	public async getGroupInfo(
+		@Param('groupId') groupId: string,
+		@Authorized('id') userId: string
+	) {
+		return this.groupsService.getGroupInfo(groupId, userId)
+	}
 
 	@Authorization()
 	@HttpCode(HttpStatus.OK)

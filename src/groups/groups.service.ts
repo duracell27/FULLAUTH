@@ -2,6 +2,26 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import { CreateGroupDto } from './dto/CreateGroupDto'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
+import { GroupRole } from '@prisma/client'
+
+type GroupWithMembers = {
+	id: string
+	name: string
+	avatarUrl: string | null
+	isLocked: boolean
+	isFinished: boolean
+	eventDate: Date
+	createdAt: Date
+	members: {
+		userId: string
+		role: GroupRole // Використовуємо Prisma.GroupRole замість $Enums.GroupRole
+		user: {
+			id: string
+			displayName: string
+			picture: string | null
+		}
+	}[]
+}
 
 @Injectable()
 export class GroupsService {
@@ -83,5 +103,58 @@ export class GroupsService {
 		})
 
 		return true
+	}
+
+	public async getGroupInfo(
+		groupId: string,
+		userId: string
+	): Promise<GroupWithMembers> {
+		const group = await this.prismaService.groupEntity.findFirst({
+			where: {
+				id: groupId
+			},
+			select: {
+				id: true,
+				name: true,
+				avatarUrl: true,
+				eventDate: true,
+				isLocked: true,
+				isFinished: true,
+				createdAt: true,
+				members: {
+					select: {
+						userId: true,
+						role: true,
+						user: {
+							select: {
+								id: true,
+								displayName: true,
+								picture: true
+							}
+						}
+					}
+				}
+			}
+		})
+
+		// Перевірка, чи існує група
+		if (!group) {
+			throw new BadRequestException('Group not found')
+		}
+
+		// Явна перевірка, чи members є масивом (хоча тип гарантує, що це масив)
+		if (!Array.isArray(group.members)) {
+			throw new BadRequestException(
+				'Group members are not properly defined'
+			)
+		}
+
+		// Перевірка, чи є користувач у групі
+		const isMember = group.members.some(member => member.userId === userId)
+		if (!isMember) {
+			throw new BadRequestException('User is not in the group')
+		}
+
+		return group as GroupWithMembers
 	}
 }
