@@ -35,6 +35,23 @@ export class UserController {
 
 	@Authorization()
 	@HttpCode(HttpStatus.OK)
+	@Get('by-name-safe')
+	public findByNameSafeEmpty() {
+		return []
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Get('by-name-safe/:name')
+	public async finByNameSafe(@Param('name') name: string) {
+		if (!name || name.trim() === '') {
+			return []
+		}
+		return this.userService.findByName(name)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
 	@Get('by-id/:id')
 	public async finById(@Param('id') userId: string) {
 		return this.userService.findById(userId)

@@ -139,19 +139,68 @@ export class AuthService {
 		return this.saveSession(req, user)
 	}
 
+	// public async logout(req: Request, res: Response): Promise<void> {
+	// 	return new Promise((resolve, reject) => {
+	// 		req.session.destroy(err => {
+	// 			if (err) {
+	// 				return reject(
+	// 					new InternalServerErrorException(
+	// 						'Error destroying session'
+	// 					)
+	// 				)
+	// 			}
+	// 			res.clearCookie(
+	// 				this.configService.getOrThrow<string>('SESSION_NAME')
+	// 			)
+	// 			resolve()
+	// 		})
+	// 	})
+	// }
+
 	public async logout(req: Request, res: Response): Promise<void> {
 		return new Promise((resolve, reject) => {
+			if (!req.session) {
+				return resolve() // Сесії немає, просто виходимо
+			}
+
 			req.session.destroy(err => {
 				if (err) {
 					return reject(
 						new InternalServerErrorException(
-							'Error destroying session'
+							'Error destroying session data.'
 						)
 					)
 				}
-				res.clearCookie(
+
+				const sessionName =
 					this.configService.getOrThrow<string>('SESSION_NAME')
-				)
+				const cookieOptions = {
+					domain: this.configService.getOrThrow<string>(
+						'SESSION_DOMAIN'
+					),
+					path: this.configService.get<string>('SESSION_PATH', '/'), // Якщо у вас є SESSION_PATH, інакше '/'
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+					httpOnly: this.configService.getOrThrow<boolean>(
+						'SESSION_HTTP_ONLY',
+						{ infer: true }
+					), // infer: true для parseBoolean
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+					secure: this.configService.getOrThrow<boolean>(
+						'SESSION_SECURE',
+						{ infer: true }
+					), // infer: true для parseBoolean
+					sameSite: this.configService.get<'lax' | 'strict' | 'none'>(
+						'SESSION_SAMESITE',
+						'lax'
+					) // 'lax' або з конфігу
+				}
+
+				res.clearCookie(sessionName, cookieOptions)
+
+				// Перевірка, чи заголовок був встановлений (це може не працювати надійно до того, як відповідь буде надіслана)
+				// const headers = res.getHeaders();
+				// this.logger.log('Response headers after clearCookie (may not be final):', headers['set-cookie']);
+
 				resolve()
 			})
 		})

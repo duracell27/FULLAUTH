@@ -58,6 +58,25 @@ export class UserService {
 		return user
 	}
 
+	public async findByName(name: string) {
+		const users = await this.prismaService.user.findMany({
+			where: {
+				displayName: {
+					contains: name,
+					mode: 'insensitive'
+				}
+			},
+			select: {
+				id: true,
+				displayName: true,
+				picture: true
+			},
+			take: 10
+		})
+
+		return users
+	}
+
 	public async create(
 		email: string,
 		password: string,
@@ -98,5 +117,15 @@ export class UserService {
 		})
 
 		return updatedUser
+	}
+
+	public async isUserExist(userId: string) {
+		const user = await this.prismaService.user.findUnique({
+			where: {
+				id: userId
+			}
+		})
+
+		return !!user
 	}
 }

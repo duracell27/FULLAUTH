@@ -103,6 +103,7 @@ model GroupMember {
   userId   String    @map("user_id")
   groupId  String    @map("group_id")
   role     GroupRole @default(MEMBER) // Роль у групі
+  status   GroupMemberStatus @default(PENDING)
   joinedAt DateTime  @default(now()) @map("joined_at")
 
   // Зв'язки
@@ -139,4 +140,10 @@ enum FriendStatus {
 enum GroupRole {
   ADMIN
   MEMBER
+}
+
+enum GroupMemberStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }

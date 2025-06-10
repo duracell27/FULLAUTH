@@ -14,7 +14,7 @@ type GroupWithMembers = {
 	createdAt: Date
 	members: {
 		userId: string
-		role: GroupRole // Використовуємо Prisma.GroupRole замість $Enums.GroupRole
+		role: GroupRole
 		user: {
 			id: string
 			displayName: string
@@ -125,6 +125,7 @@ export class GroupsService {
 					select: {
 						userId: true,
 						role: true,
+						status: true,
 						user: {
 							select: {
 								id: true,
@@ -156,5 +157,15 @@ export class GroupsService {
 		}
 
 		return group as GroupWithMembers
+	}
+
+	public async isGroupExsist(groupId: string) {
+		const group = await this.prismaService.groupEntity.findFirst({
+			where: {
+				id: groupId
+			}
+		})
+
+		return !!group
 	}
 }

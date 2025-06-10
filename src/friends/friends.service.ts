@@ -1,5 +1,6 @@
 import { PrismaService } from '@/prisma/prisma.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
+import { FriendStatus } from '@prisma/client'
 
 @Injectable()
 export class FriendsService {
@@ -154,5 +155,27 @@ export class FriendsService {
 				id: friendRequestId
 			}
 		})
+	}
+
+	public async isUsersFriends(userId: string, friendId: string) {
+		const isFriendsExists =
+			await this.prismaService.friendRequests.findFirst({
+				where: {
+					OR: [
+						{
+							senderId: userId,
+							receiverId: friendId,
+							status: FriendStatus.ACCEPTED
+						},
+						{
+							senderId: friendId,
+							receiverId: userId,
+							status: FriendStatus.ACCEPTED
+						}
+					]
+				}
+			})
+
+		return !!isFriendsExists
 	}
 }

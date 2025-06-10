@@ -3,9 +3,17 @@ import { GroupMembersService } from './group-members.service'
 import { GroupMembersController } from './group-members.controller'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UserService } from '@/user/user.service'
+import { GroupsService } from '@/groups/groups.service'
+import { FriendsService } from '@/friends/friends.service'
 
 @Module({
 	controllers: [GroupMembersController],
-	providers: [GroupMembersService, PrismaService, UserService]
+	providers: [
+		GroupMembersService,
+		PrismaService,
+		UserService,
+		GroupsService,
+		FriendsService
+	]
 })
 export class GroupMembersModule {}
