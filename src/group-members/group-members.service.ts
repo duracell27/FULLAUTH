@@ -96,10 +96,17 @@ export class GroupMembersService {
 			}
 		})
 
-		if (isRequestExist) {
+		if (
+			isRequestExist?.status === GroupMemberStatus.PENDING ||
+			isRequestExist?.status === GroupMemberStatus.ACCEPTED
+		) {
 			throw new BadRequestException(
 				'User is already in the group or has not yet confirmed membership'
 			)
+		}
+
+		if (isRequestExist?.status === GroupMemberStatus.REJECTED) {
+			throw new BadRequestException('User has rejected the request')
 		}
 
 		const isGroupExsist = await this.groupService.isGroupExsist(groupId)

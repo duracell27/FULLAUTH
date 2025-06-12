@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import { CreateGroupDto } from './dto/CreateGroupDto'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
-import { GroupRole } from '@prisma/client'
+import { GroupMemberStatus, GroupRole } from '@prisma/client'
 
 type GroupWithMembers = {
 	id: string
@@ -122,6 +122,14 @@ export class GroupsService {
 				isFinished: true,
 				createdAt: true,
 				members: {
+					where: {
+						status: {
+							in: [
+								GroupMemberStatus.PENDING,
+								GroupMemberStatus.ACCEPTED
+							]
+						}
+					},
 					select: {
 						userId: true,
 						role: true,
