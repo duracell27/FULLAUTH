@@ -149,6 +149,55 @@ export class GroupMembersService {
 		return groupMemberObj
 	}
 
+	public async deleteUserFromGroup(
+		groupId: string,
+		recieverUserId: string,
+		senderUserId: string
+	) {
+		const isRequestExist = await this.prismaService.groupMember.findFirst({
+			where: {
+				userId: recieverUserId,
+				groupId: groupId
+			}
+		})
+
+		if (!isRequestExist) {
+			throw new BadRequestException('User is not in the group')
+		}
+
+		const isGroupExsist = await this.groupService.isGroupExsist(groupId)
+
+		if (!isGroupExsist) {
+			throw new BadRequestException('Group not found')
+		}
+
+		const isUserExist = await this.userService.isUserExist(recieverUserId)
+
+		if (!isUserExist) {
+			throw new BadRequestException('User not found')
+		}
+
+		const isGroupAdmin = await this.isUserAdminOfGroup(
+			senderUserId,
+			groupId
+		)
+
+		if (!isGroupAdmin) {
+			throw new BadRequestException('You are not admin of this group')
+		}
+
+		await this.prismaService.groupMember.delete({
+			where: {
+				userId_groupId: {
+					userId: recieverUserId,
+					groupId: groupId
+				}
+			}
+		})
+
+		return true
+	}
+
 	public async isUserAdminOfGroup(userId: string, groupId: string) {
 		const userGroupAdmin = await this.prismaService.groupMember.findFirst({
 			where: {

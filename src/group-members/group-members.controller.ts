@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	HttpCode,
 	HttpStatus,
@@ -65,6 +66,20 @@ export class GroupMembersController {
 		@Body() dto: AddUserToGroupDto
 	) {
 		return this.groupMembersService.addUserToGroup(
+			dto.groupId,
+			dto.userId,
+			userId
+		)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Delete('')
+	public async DeleteUserFromGroup(
+		@Authorized('id') userId: string,
+		@Body() dto: AddUserToGroupDto
+	) {
+		return this.groupMembersService.deleteUserFromGroup(
 			dto.groupId,
 			dto.userId,
 			userId
