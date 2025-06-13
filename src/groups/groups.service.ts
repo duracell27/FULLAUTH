@@ -40,7 +40,8 @@ export class GroupsService {
 			data: {
 				userId: userId,
 				groupId: group.id,
-				role: 'ADMIN'
+				role: GroupRole.ADMIN,
+				status: GroupMemberStatus.ACCEPTED
 			}
 		})
 
