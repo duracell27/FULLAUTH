@@ -12,6 +12,7 @@ import { TwoFactorAuthModule } from './auth/two-factor-auth/two-factor-auth.modu
 import { FriendsModule } from './friends/friends.module'
 import { GroupsModule } from './groups/groups.module'
 import { GroupMembersModule } from './group-members/group-members.module'
+import { ExpensesModule } from './expenses/expenses.module';
 
 @Module({
 	imports: [
@@ -29,7 +30,8 @@ import { GroupMembersModule } from './group-members/group-members.module'
 		TwoFactorAuthModule,
 		FriendsModule,
 		GroupsModule,
-		GroupMembersModule
+		GroupMembersModule,
+		ExpensesModule
 	]
 })
 export class AppModule {}

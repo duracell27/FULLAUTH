@@ -1,3 +1,153 @@
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("POSTGRES_URL")
+// }
+
+// model User {
+//   id String @id @default(uuid())
+
+//   email    String @unique
+//   password String
+
+//   displayName String
+//   picture     String?
+
+//   isVerified         Boolean @default(false) @map("is_verified")
+//   isTwoFactorEnabled Boolean @default(false) @map("is_two_factor_enabled")
+
+//   method AuthMethod
+
+//   role UserRole @default(REGULAR)
+
+//   createdAt DateTime @default(now()) @map("created_at")
+//   updatedAt DateTime @updatedAt @map("updated_at")
+
+//   accounts Account[]
+
+//   sentFriendRequests     FriendRequests[] @relation("SentFriendRequests")
+//   receivedFriendRequests FriendRequests[] @relation("ReceivedFriendRequests")
+
+//   groupMemberships GroupMember[]
+
+//   @@map("users")
+// }
+
+// model Account {
+//   id String @id @default(uuid())
+
+//   userId String? @map("user_id")
+//   user   User?   @relation(fields: [userId], references: [id])
+
+//   provider String
+//   type     String
+
+//   refreshToken String? @map("refresh_token")
+//   accessToken  String? @map("access_token")
+//   expiresAt    Int?    @map("expires_at")
+
+//   createdAt DateTime @default(now()) @map("created_at")
+//   updatedAt DateTime @updatedAt @map("updated_at")
+
+//   @@map("accounts")
+// }
+
+// model Token {
+//   id String @id @default(uuid())
+
+//   email     String
+//   token     String    @unique
+//   type      TokenType
+//   expiresIn DateTime  @map("expires_in")
+//   createdAt DateTime  @default(now()) @map("created_at")
+
+//   @@map("tokens")
+// }
+
+// model FriendRequests {
+//   id String @id @default(cuid())
+
+//   senderId   String @map("sender_id")
+//   receiverId String @map("receiver_id")
+
+//   status FriendStatus
+
+//   createdAt DateTime @default(now()) @map("created_at")
+//   updatedAt DateTime @updatedAt @map("updated_at")
+
+//   sender   User @relation("SentFriendRequests", fields: [senderId], references: [id])
+//   receiver User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id])
+
+//   @@map("friend_requests")
+// }
+
+// model GroupEntity {
+//   id         String   @id @default(uuid())
+//   name       String
+//   avatarUrl  String?  @map("avatar_url")
+//   isLocked   Boolean  @default(false) @map("is_locked") // Чи група заблокована від змін
+//   isFinished Boolean  @default(false) @map("is_finished") // Чи група вже завершена
+//   eventDate  DateTime @default(now()) @map("date")
+//   createdAt  DateTime @default(now()) @map("created_at")
+//   updatedAt  DateTime @updatedAt @map("updated_at")
+
+//   members GroupMember[]
+
+//   @@map("groups")
+// }
+
+// model GroupMember {
+//   userId   String    @map("user_id")
+//   groupId  String    @map("group_id")
+//   role     GroupRole @default(MEMBER) // Роль у групі
+//   status   GroupMemberStatus @default(PENDING)
+//   joinedAt DateTime  @default(now()) @map("joined_at")
+
+//   // Зв'язки
+//   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   group GroupEntity @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+//   // Композитний ключ, щоб один юзер міг бути в групі лише раз
+//   @@id([userId, groupId])
+//   @@map("group_members")
+// }
+
+// enum UserRole {
+//   REGULAR
+//   ADMIN
+// }
+
+// enum AuthMethod {
+//   CREDENTIALS
+//   GOOGLE
+// }
+
+// enum TokenType {
+//   VERIFIFCATION
+//   TWO_FACTOR
+//   PASSWORD_RESET
+// }
+
+// enum FriendStatus {
+//   PENDING
+//   ACCEPTED
+//   REJECTED
+// }
+
+// enum GroupRole {
+//   ADMIN
+//   MEMBER
+// }
+
+// enum GroupMemberStatus {
+//   PENDING
+//   ACCEPTED
+//   REJECTED
+// }
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -32,6 +182,11 @@ model User {
   receivedFriendRequests FriendRequests[] @relation("ReceivedFriendRequests")
 
   groupMemberships GroupMember[]
+
+  expensesCreated Expense[] @relation("ExpenseCreator")
+  expensesPaid    ExpensePayment[] @relation("ExpensePayer")
+  debts           Debt[] @relation("Debtor")
+  credits         Debt[] @relation("Creditor")
 
   @@map("users")
 }
@@ -88,13 +243,14 @@ model GroupEntity {
   id         String   @id @default(uuid())
   name       String
   avatarUrl  String?  @map("avatar_url")
-  isLocked   Boolean  @default(false) @map("is_locked") // Чи група заблокована від змін
-  isFinished Boolean  @default(false) @map("is_finished") // Чи група вже завершена
+  isLocked   Boolean  @default(false) @map("is_locked")
+  isFinished Boolean  @default(false) @map("is_finished")
   eventDate  DateTime @default(now()) @map("date")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  members GroupMember[]
+  members  GroupMember[]
+  expenses Expense[]
 
   @@map("groups")
 }
@@ -102,17 +258,82 @@ model GroupEntity {
 model GroupMember {
   userId   String    @map("user_id")
   groupId  String    @map("group_id")
-  role     GroupRole @default(MEMBER) // Роль у групі
+  role     GroupRole @default(MEMBER)
   status   GroupMemberStatus @default(PENDING)
   joinedAt DateTime  @default(now()) @map("joined_at")
 
-  // Зв'язки
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   group GroupEntity @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-  // Композитний ключ, щоб один юзер міг бути в групі лише раз
   @@id([userId, groupId])
   @@map("group_members")
+}
+
+model Expense {
+  id           String    @id @default(uuid())
+  groupId      String    @map("group_id")
+  creatorId    String    @map("creator_id")
+  amount       Float
+  description  String
+  photoUrl     String?   @map("photo_url")
+  splitType    SplitType @default(EQUAL) @map("split_type")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  group        GroupEntity      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator      User             @relation("ExpenseCreator", fields: [creatorId], references: [id])
+  payers       ExpensePayment[] @relation("ExpensePayments")
+  splits       Debt[]           @relation("ExpenseDebts")
+
+  @@map("expenses")
+}
+
+model ExpensePayment {
+  id        String   @id @default(uuid())
+  expenseId String   @map("expense_id")
+  payerId   String   @map("payer_id")
+  amount    Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  expense   Expense  @relation("ExpensePayments", fields: [expenseId], references: [id], onDelete: Cascade)
+  payer     User     @relation("ExpensePayer", fields: [payerId], references: [id])
+
+  @@map("expense_payments")
+}
+
+model Debt {
+  id           String      @id @default(uuid())
+  expenseId    String      @map("expense_id")
+  debtorId     String      @map("debtor_id")
+  creditorId   String      @map("creditor_id")
+  amount       Float
+  remaining    Float
+  percentage   Float?      @map("percentage")
+  shares       Int?        @map("shares")
+  extraAmount  Float?      @map("extra_amount")
+  status       DebtStatus  @default(PENDING)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  expense      Expense     @relation("ExpenseDebts", fields: [expenseId], references: [id], onDelete: Cascade)
+  debtor       User        @relation("Debtor", fields: [debtorId], references: [id])
+  creditor     User        @relation("Creditor", fields: [creditorId], references: [id])
+  payments     DebtPayment[] @relation("DebtPayments")
+
+  @@map("debts")
+  @@index([expenseId])
+}
+
+model DebtPayment {
+  id        String   @id @default(uuid())
+  debtId    String   @map("debt_id")
+  amount    Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  debt      Debt     @relation("DebtPayments", fields: [debtId], references: [id], onDelete: Cascade)
+
+  @@map("debt_payments")
+  @@index([debtId])
 }
 
 enum UserRole {
@@ -146,4 +367,17 @@ enum GroupMemberStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+enum DebtStatus {
+  PENDING
+  SETTLED
+}
+
+enum SplitType {
+  EQUAL
+  CUSTOM
+  PERCENTAGE
+  SHARES
+  EXTRA
 }

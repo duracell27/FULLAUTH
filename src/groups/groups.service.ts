@@ -143,6 +143,25 @@ export class GroupsService {
 							}
 						}
 					}
+				},
+				expenses: {
+					select: {
+						id: true,
+						amount: true,
+						description: true,
+						photoUrl: true,
+						createdAt: true,
+						creator: {
+							select: {
+								id: true,
+								displayName: true,
+								picture: true
+							}
+						}
+					},
+					orderBy: {
+						createdAt: 'desc'
+					}
 				}
 			}
 		})
