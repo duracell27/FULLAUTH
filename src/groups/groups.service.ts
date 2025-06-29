@@ -10,6 +10,8 @@ type GroupWithMembers = {
 	avatarUrl: string | null
 	isLocked: boolean
 	isFinished: boolean
+	totalExpenses: number
+	userTotalBalance: number
 	eventDate: Date
 	createdAt: Date
 	members: {
@@ -150,12 +152,35 @@ export class GroupsService {
 						amount: true,
 						description: true,
 						photoUrl: true,
+						date: true,
 						createdAt: true,
 						creator: {
 							select: {
 								id: true,
 								displayName: true,
 								picture: true
+							}
+						},
+						payers: {
+							where: {
+								payerId: userId
+							},
+							select: {
+								amount: true
+							}
+						},
+						splits: {
+							// Виправлення: тільки записи де користувач є боржником
+							where: {
+								OR: [
+									{ debtorId: userId },
+									{ creditorId: userId }
+								]
+							},
+							select: {
+								amount: true,
+								debtorId: true,
+								creditorId: true
 							}
 						}
 					},
@@ -184,7 +209,57 @@ export class GroupsService {
 			throw new BadRequestException('User is not in the group')
 		}
 
-		return group as GroupWithMembers
+		// Обчислюємо баланс користувача для кожної витрати
+		const expensesWithBalance = group.expenses.map(expense => {
+			const totalOwedToUser = expense.splits
+				.filter(split => split.creditorId === userId)
+				.reduce((sum, split) => sum + split.amount, 0)
+
+			// Гроші, що поточний юзер винен іншим за цю витрату
+			const totalOwedByUser = expense.splits
+				.filter(split => split.debtorId === userId)
+				.reduce((sum, split) => sum + split.amount, 0)
+
+			// Баланс - це чистий результат: кому винні мінус що винні.
+			// Якщо результат > 0, вам винні. Якщо < 0, ви винні.
+			const userBalance = totalOwedToUser - totalOwedByUser
+
+			return {
+				id: expense.id,
+				amount: expense.amount,
+				description: expense.description,
+				photoUrl: expense.photoUrl,
+				date: expense.date,
+				createdAt: expense.createdAt,
+				creator: expense.creator,
+				userBalance // <-- використовуємо новий, правильно розрахований баланс
+			}
+		})
+
+		// --- НОВИЙ КОД: Обчислення загальних сум ---
+
+		// 1. Загальна сума всіх витрат у групі
+		// Ми використовуємо початковий масив `group.expenses`,
+		// оскільки там є повна сума кожної витрати.
+		const totalExpenses = group.expenses.reduce(
+			(sum, expense) => sum + expense.amount,
+			0
+		)
+
+		// 2. Загальний баланс користувача по всій групі
+		// Ми використовуємо новий масив `expensesWithBalance`,
+		// оскільки там вже розрахований баланс по кожній витраті.
+		const userTotalBalance = expensesWithBalance.reduce(
+			(sum, expense) => sum + expense.userBalance,
+			0
+		)
+
+		return {
+			...group,
+			expenses: expensesWithBalance,
+			totalExpenses, // <-- Додано
+			userTotalBalance // <-- Додано
+		} as GroupWithMembers
 	}
 
 	public async isGroupExsist(groupId: string) {

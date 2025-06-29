@@ -7,7 +7,8 @@ import {
 	IsString,
 	IsUUID,
 	ValidateNested,
-	Min
+	Min,
+	IsDate
 } from 'class-validator'
 import { Type } from 'class-transformer'
 import { SplitType } from '@prisma/client' // Імпортуємо енум з Prisma
@@ -64,6 +65,11 @@ export class CreateExpenseDto {
 	@IsOptional()
 	@IsString()
 	photoUrl?: string
+
+	@IsDate()
+	@Type(() => Date)
+	@IsOptional()
+	date?: Date
 
 	@IsArray()
 	@ValidateNested({ each: true })

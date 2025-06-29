@@ -277,6 +277,7 @@ model Expense {
   description  String
   photoUrl     String?   @map("photo_url")
   splitType    SplitType @default(EQUAL) @map("split_type")
+  date         DateTime  @default(now()) @map("date")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 

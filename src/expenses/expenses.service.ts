@@ -40,6 +40,7 @@ export class ExpensesService {
 					splitType: dto.splitType,
 					photoUrl: dto.photoUrl,
 					groupId: dto.groupId,
+					date: dto.date,
 					creatorId: creatorId
 				}
 			})
