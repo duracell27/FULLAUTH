@@ -194,6 +194,8 @@ model User {
 model Account {
   id String @id @default(uuid())
 
+  userEmail String @unique
+
   userId String? @map("user_id")
   user   User?   @relation(fields: [userId], references: [id])
 
