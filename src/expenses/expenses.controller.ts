@@ -1,4 +1,12 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
+import {
+	Body,
+	Controller,
+	Get,
+	HttpCode,
+	HttpStatus,
+	Param,
+	Post
+} from '@nestjs/common'
 import { ExpensesService } from './expenses.service'
 import { Authorization } from '@/auth/decorators/auth.decorator'
 import { Authorized } from '@/auth/decorators/authorized.decorator'
@@ -16,5 +24,15 @@ export class ExpensesController {
 		@Body() dto: CreateExpenseDto
 	) {
 		return this.expensesService.addExpense(dto, userId)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Get(':expenseId')
+	public getExpenseInfo(
+		@Param('expenseId') groupId: string,
+		@Authorized('id') userId: string
+	) {
+		return this.expensesService.getExpenseInfo(groupId, userId)
 	}
 }

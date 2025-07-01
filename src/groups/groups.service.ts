@@ -271,4 +271,21 @@ export class GroupsService {
 
 		return !!group
 	}
+
+	public async getGroupName(groupId: string) {
+		const group = await this.prismaService.groupEntity.findFirst({
+			where: {
+				id: groupId
+			},
+			select: {
+				name: true
+			}
+		})
+
+		if (group) {
+			return group.name
+		} else {
+			return ''
+		}
+	}
 }

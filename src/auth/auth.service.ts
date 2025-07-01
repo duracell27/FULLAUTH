@@ -97,11 +97,7 @@ export class AuthService {
 	) {
 		const providerInstance = this.providerService.findByService(provider)!
 
-		console.log('providerInstance', providerInstance)
-
 		const profile = await providerInstance.findUserByCode(code)
-
-		console.log('profile ID', profile.id)
 
 		const account = await this.prismaService.account.findFirst({
 			where: {
@@ -110,16 +106,11 @@ export class AuthService {
 			}
 		})
 
-		console.log('account', account)
-
 		let user = account?.userId
 			? await this.userService.findById(account.userId)
 			: null
 
-		console.log('user', user)
-
 		if (user) {
-			console.log('ya tut')
 			return this.saveSession(req, user)
 		}
 

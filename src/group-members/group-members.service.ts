@@ -1,5 +1,6 @@
 import { FriendsService } from '@/friends/friends.service'
 import { GroupsService } from '@/groups/groups.service'
+import { MailService } from '@/libs/mail/mail.service'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UserService } from '@/user/user.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
@@ -12,6 +13,7 @@ export class GroupMembersService {
 	public constructor(
 		public readonly prismaService: PrismaService,
 		private readonly userService: UserService,
+		private readonly mailService: MailService,
 		private readonly groupService: GroupsService,
 		private readonly friendsService: FriendsService
 	) {}
@@ -114,8 +116,10 @@ export class GroupMembersService {
 		if (!isGroupExsist) {
 			throw new BadRequestException('Group not found')
 		}
+		const groupName = await this.groupService.getGroupName(groupId)
 
-		const isUserExist = await this.userService.isUserExist(recieverUserId)
+		const user = await this.userService.findById(recieverUserId)
+		const isUserExist = !!user
 
 		if (!isUserExist) {
 			throw new BadRequestException('User not found')
@@ -145,6 +149,20 @@ export class GroupMembersService {
 					: GroupMemberStatus.PENDING
 			}
 		})
+
+		if (isUserFriends) {
+			await this.mailService.sendGroupInvitationEmail(
+				user.email,
+				groupName,
+				user.displayName
+			)
+		} else {
+			await this.mailService.sendGroupInvitationWithConfirmEmail(
+				recieverUserId,
+				groupName,
+				user.displayName
+			)
+		}
 
 		return groupMemberObj
 	}

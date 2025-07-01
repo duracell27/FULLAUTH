@@ -1,5 +1,9 @@
 import { PrismaService } from '@/prisma/prisma.service'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException
+} from '@nestjs/common'
 import { CreateExpenseDto } from './dto/CreateExpense.dto'
 import { Prisma, SplitType } from '@prisma/client'
 
@@ -260,5 +264,67 @@ export class ExpensesService {
 		}
 
 		return shares
+	}
+
+	public async getExpenseInfo(expenseId: string, userId: string) {
+		// Крок 1: Робимо один запит, який одразу і знаходить витрату, і перевіряє доступ
+		const expense = await this.prismaService.expense.findFirst({
+			where: {
+				id: expenseId,
+				// Перевіряємо, чи існує в групі учасник з таким userId
+				group: {
+					members: {
+						some: {
+							userId: userId
+						}
+					}
+				}
+			},
+			include: {
+				// Включаємо дані про творця і вибираємо лише потрібні поля
+				creator: {
+					select: {
+						id: true,
+						displayName: true,
+						picture: true
+					}
+				},
+				// Включаємо платників
+				payers: {
+					include: {
+						// Для кожного платника включаємо дані користувача
+						payer: {
+							select: {
+								id: true,
+								displayName: true,
+								picture: true
+							}
+						}
+					}
+				},
+				// Включаємо борги (хто скільки винен)
+				splits: {
+					include: {
+						// Для кожного боржника включаємо дані користувача
+						debtor: {
+							select: {
+								id: true,
+								displayName: true,
+								picture: true
+							}
+						}
+					}
+				}
+			}
+		})
+
+		// Крок 2: Якщо витрата не знайдена або у користувача немає доступу, кидаємо помилку
+		if (!expense) {
+			throw new NotFoundException(
+				'Expense not found or you do not have permission to view it.'
+			)
+		}
+
+		return expense
 	}
 }
