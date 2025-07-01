@@ -312,6 +312,13 @@ export class ExpensesService {
 								displayName: true,
 								picture: true
 							}
+						},
+						creditor: {
+							select: {
+								id: true,
+								displayName: true,
+								picture: true
+							}
 						}
 					}
 				}
@@ -327,4 +334,6 @@ export class ExpensesService {
 
 		return expense
 	}
+
+	public async findDataForSummary(userId: string) {}
 }
