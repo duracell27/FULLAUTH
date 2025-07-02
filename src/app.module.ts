@@ -13,6 +13,7 @@ import { FriendsModule } from './friends/friends.module'
 import { GroupsModule } from './groups/groups.module'
 import { GroupMembersModule } from './group-members/group-members.module'
 import { ExpensesModule } from './expenses/expenses.module';
+import { SummaryModule } from './summary/summary.module';
 
 @Module({
 	imports: [
@@ -31,7 +32,8 @@ import { ExpensesModule } from './expenses/expenses.module';
 		FriendsModule,
 		GroupsModule,
 		GroupMembersModule,
-		ExpensesModule
+		ExpensesModule,
+		SummaryModule
 	]
 })
 export class AppModule {}

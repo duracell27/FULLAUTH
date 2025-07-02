@@ -5,7 +5,7 @@ import {
 	NotFoundException
 } from '@nestjs/common'
 import { CreateExpenseDto } from './dto/CreateExpense.dto'
-import { Prisma, SplitType } from '@prisma/client'
+import { GroupMember, Prisma, SplitType } from '@prisma/client'
 
 // Визначаємо тип, який буде повертатися
 // Він має ТОЧНО відповідати запиту в `findUnique` (включаючи `include`)
@@ -31,6 +31,12 @@ export class ExpensesService {
 				'Сума платежів не збігається із загальною сумою витрати.'
 			)
 		}
+
+		const members = await this.prismaService.groupMember.findMany({
+			where: {
+				groupId: dto.groupId
+			}
+		})
 
 		// Перевірка, чи всі потрібні юзери і група існують (можна додати для надійності)
 
@@ -71,7 +77,7 @@ export class ExpensesService {
 			}
 
 			// Розраховуємо частку боргу для кожного
-			const debtorShares = this.calculateDebtorShares(dto)
+			const debtorShares = this.calculateDebtorShares(dto, members)
 
 			// Віднімаємо борги з балансів (вони "боржники")
 			for (const [userId, share] of debtorShares.entries()) {
@@ -147,7 +153,10 @@ export class ExpensesService {
 		})
 	}
 
-	private calculateDebtorShares(dto: CreateExpenseDto): Map<string, number> {
+	private calculateDebtorShares(
+		dto: CreateExpenseDto,
+		members: GroupMember[]
+	): Map<string, number> {
 		const shares = new Map<string, number>()
 		const numDebtors = dto.debtors.length
 
@@ -220,8 +229,7 @@ export class ExpensesService {
 			}
 
 			case SplitType.EXTRA: {
-				// Поділ, де деякі учасники платять екстра суму, а решта ділиться порівну.
-				// У вашому DTO для DebtorDto має бути поле `extraAmount?: number`.
+				// 1. Сумуємо всі екстра-внески від боржників, що прийшли в DTO.
 				const totalExtraAmount = dto.debtors.reduce(
 					(sum, d) => sum + (d.extraAmount || 0),
 					0
@@ -233,14 +241,39 @@ export class ExpensesService {
 					)
 				}
 
-				const remainingAmount = dto.amount - totalExtraAmount
-				const equalPartOfRemaining = remainingAmount / numDebtors
+				if (members.length === 0) {
+					// Уникаємо ділення на нуль, якщо в групі немає учасників.
+					break
+				}
 
+				// 2. Визначаємо залишок суми та рівну частку для КОЖНОГО учасника групи.
+				const remainingAmount = dto.amount - totalExtraAmount
+				const equalShare = remainingAmount / members.length
+
+				// 3. Створюємо мапу для швидкого доступу до екстра-внесків по userId.
+				// Це ефективніше, ніж шукати в циклі.
+				const extraAmountsMap = new Map<string, number>()
 				dto.debtors.forEach(d => {
-					const userExtraAmount = d.extraAmount || 0
-					const finalUserDebt = equalPartOfRemaining + userExtraAmount
-					shares.set(d.userId, finalUserDebt)
+					if (d.extraAmount) {
+						extraAmountsMap.set(d.userId, d.extraAmount)
+					}
 				})
+
+				// 4. Проходимо по ВСІХ учасниках групи.
+				members.forEach(member => {
+					// Кожен учасник за замовчуванням отримує рівну частку.
+					let finalUserDebt = equalShare
+
+					// Перевіряємо, чи є для цього учасника екстра-внесок.
+					if (extraAmountsMap.has(member.userId)) {
+						// Якщо так, додаємо його до рівної частки.
+						finalUserDebt += extraAmountsMap.get(member.userId)!
+					}
+
+					// Записуємо фінальну суму боргу для учасника.
+					shares.set(member.userId, finalUserDebt)
+				})
+
 				break
 			}
 
@@ -334,6 +367,4 @@ export class ExpensesService {
 
 		return expense
 	}
-
-	public async findDataForSummary(userId: string) {}
 }

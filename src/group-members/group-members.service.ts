@@ -31,7 +31,8 @@ export class GroupMembersService {
 							eventDate: true
 						}
 					}
-				}
+				},
+				orderBy: { group: { eventDate: 'desc' } }
 			})
 
 		return groupMembers.map(member => member.group)
