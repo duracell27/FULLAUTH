@@ -60,10 +60,12 @@ export class FriendsService {
 				where: {
 					OR: [
 						{
-							senderId: receiverId
+							senderId: receiverId,
+							status: FriendStatus.PENDING
 						},
 						{
-							receiverId: receiverId
+							receiverId: receiverId,
+							status: FriendStatus.PENDING
 						}
 					]
 				}
@@ -142,7 +144,16 @@ export class FriendsService {
 			await this.prismaService.friendRequests.findFirst({
 				where: {
 					id: friendRequestId,
-					senderId: senderId
+					OR: [
+						{
+							senderId: senderId,
+							status: FriendStatus.ACCEPTED
+						},
+						{
+							receiverId: senderId,
+							status: FriendStatus.ACCEPTED
+						}
+					]
 				}
 			})
 

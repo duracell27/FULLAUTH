@@ -64,7 +64,7 @@ export class FriendsController {
 
 	@Authorization()
 	@HttpCode(HttpStatus.OK)
-	@Delete('/:friendRequestId')
+	@Delete(':friendRequestId')
 	public async cancelFriendRequest(
 		@Authorized('id') userId: string,
 		@Param('friendRequestId') friendRequestId: string
