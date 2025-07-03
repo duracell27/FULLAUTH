@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	HttpCode,
 	HttpStatus,
@@ -34,5 +35,15 @@ export class ExpensesController {
 		@Authorized('id') userId: string
 	) {
 		return this.expensesService.getExpenseInfo(groupId, userId)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Delete(':expenseId')
+	public deleteExpense(
+		@Param('expenseId') groupId: string,
+		@Authorized('id') userId: string
+	) {
+		return this.expensesService.deleteExpense(groupId, userId)
 	}
 }

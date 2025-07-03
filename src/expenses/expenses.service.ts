@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common'
 import { CreateExpenseDto } from './dto/CreateExpense.dto'
 import { GroupMember, Prisma, SplitType } from '@prisma/client'
+import { GroupMembersService } from '@/group-members/group-members.service'
 
 // Визначаємо тип, який буде повертатися
 // Він має ТОЧНО відповідати запиту в `findUnique` (включаючи `include`)
@@ -18,7 +19,10 @@ type ExpenseWithDetails = Prisma.ExpenseGetPayload<{
 
 @Injectable()
 export class ExpensesService {
-	public constructor(private readonly prismaService: PrismaService) {}
+	public constructor(
+		private readonly prismaService: PrismaService,
+		private readonly groupMembersService: GroupMembersService
+	) {}
 
 	async addExpense(
 		dto: CreateExpenseDto,
@@ -366,5 +370,34 @@ export class ExpensesService {
 		}
 
 		return expense
+	}
+
+	public async deleteExpense(expenseId: string, userId: string) {
+		const expense = await this.prismaService.expense.findFirst({
+			where: {
+				id: expenseId
+			}
+		})
+
+		if (!expense) {
+			throw new NotFoundException('Expense not found.')
+		}
+
+		const isUserAdmin = await this.groupMembersService.isUserAdminOfGroup(
+			userId,
+			expense.groupId
+		)
+
+		if (!isUserAdmin) {
+			throw new BadRequestException('You are not admin of this group')
+		}
+
+		await this.prismaService.expense.delete({
+			where: {
+				id: expenseId
+			}
+		})
+
+		return true
 	}
 }
