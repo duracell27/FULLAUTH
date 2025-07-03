@@ -99,12 +99,6 @@ export class GroupsService {
 			}
 		})
 
-		await this.prismaService.groupMember.deleteMany({
-			where: {
-				groupId: groupId
-			}
-		})
-
 		return true
 	}
 
