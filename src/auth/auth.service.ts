@@ -141,23 +141,23 @@ export class AuthService {
 		return this.saveSession(req, user)
 	}
 
-	// public async logout(req: Request, res: Response): Promise<void> {
-	// 	return new Promise((resolve, reject) => {
-	// 		req.session.destroy(err => {
-	// 			if (err) {
-	// 				return reject(
-	// 					new InternalServerErrorException(
-	// 						'Error destroying session'
-	// 					)
-	// 				)
-	// 			}
-	// 			res.clearCookie(
-	// 				this.configService.getOrThrow<string>('SESSION_NAME')
-	// 			)
-	// 			resolve()
-	// 		})
-	// 	})
-	// }
+	public async logout(req: Request, res: Response): Promise<void> {
+		return new Promise((resolve, reject) => {
+			req.session.destroy(err => {
+				if (err) {
+					return reject(
+						new InternalServerErrorException(
+							'Error destroying session'
+						)
+					)
+				}
+				res.clearCookie(
+					this.configService.getOrThrow<string>('SESSION_NAME')
+				)
+				resolve()
+			})
+		})
+	}
 
 	// public async logout(req: Request, res: Response): Promise<void> {
 	// 	return new Promise((resolve, reject) => {
@@ -208,67 +208,67 @@ export class AuthService {
 	// 	})
 	// }
 
-	public async logout(req: Request, res: Response): Promise<void> {
-		return new Promise((resolve, reject) => {
-			if (!req.session) {
-				return resolve() // Сесії немає, просто виходимо
-			}
+	// public async logout(req: Request, res: Response): Promise<void> {
+	// 	return new Promise((resolve, reject) => {
+	// 		if (!req.session) {
+	// 			return resolve() // Сесії немає, просто виходимо
+	// 		}
 
-			req.session.destroy(err => {
-				if (err) {
-					return reject(
-						new InternalServerErrorException(
-							'Error destroying session data.'
-						)
-					)
-				}
+	// 		req.session.destroy(err => {
+	// 			if (err) {
+	// 				return reject(
+	// 					new InternalServerErrorException(
+	// 						'Error destroying session data.'
+	// 					)
+	// 				)
+	// 			}
 
-				const sessionName =
-					this.configService.getOrThrow<string>('SESSION_NAME')
-				const sessionDomain =
-					this.configService.get<string>('SESSION_DOMAIN')
+	// 			const sessionName =
+	// 				this.configService.getOrThrow<string>('SESSION_NAME')
+	// 			const sessionDomain =
+	// 				this.configService.get<string>('SESSION_DOMAIN')
 
-				// Для localhost краще не встановлювати domain
-				const cookieOptions = {
-					...(sessionDomain && sessionDomain !== 'localhost'
-						? { domain: sessionDomain }
-						: {}),
-					path: this.configService.get<string>('SESSION_PATH', '/'),
-					httpOnly: this.configService.getOrThrow<boolean>(
-						'SESSION_HTTP_ONLY',
-						{ infer: true }
-					),
-					secure: this.configService.getOrThrow<boolean>(
-						'SESSION_SECURE',
-						{ infer: true }
-					),
-					sameSite: this.configService.get<'lax' | 'strict' | 'none'>(
-						'SESSION_SAMESITE',
-						'lax'
-					)
-				}
+	// 			// Для localhost краще не встановлювати domain
+	// 			const cookieOptions = {
+	// 				...(sessionDomain && sessionDomain !== 'localhost'
+	// 					? { domain: sessionDomain }
+	// 					: {}),
+	// 				path: this.configService.get<string>('SESSION_PATH', '/'),
+	// 				httpOnly: this.configService.getOrThrow<boolean>(
+	// 					'SESSION_HTTP_ONLY',
+	// 					{ infer: true }
+	// 				),
+	// 				secure: this.configService.getOrThrow<boolean>(
+	// 					'SESSION_SECURE',
+	// 					{ infer: true }
+	// 				),
+	// 				sameSite: this.configService.get<'lax' | 'strict' | 'none'>(
+	// 					'SESSION_SAMESITE',
+	// 					'lax'
+	// 				)
+	// 			}
 
-				// Очищуємо cookie з точними налаштуваннями
-				res.clearCookie(sessionName, cookieOptions)
+	// 			// Очищуємо cookie з точними налаштуваннями
+	// 			res.clearCookie(sessionName, cookieOptions)
 
-				// АГРЕСИВНЕ ОЧИЩЕННЯ ДЛЯ SAFARI
-				// Встановлюємо Set-Cookie заголовок вручну з минулою датою
-				const pastDate = new Date(1970, 0, 1).toUTCString()
-				const cookieString = `${sessionName}=; Path=${cookieOptions.path || '/'}; Expires=${pastDate}; HttpOnly${cookieOptions.secure ? '; Secure' : ''}${cookieOptions.sameSite ? `; SameSite=${cookieOptions.sameSite}` : ''}`
+	// 			// АГРЕСИВНЕ ОЧИЩЕННЯ ДЛЯ SAFARI
+	// 			// Встановлюємо Set-Cookie заголовок вручну з минулою датою
+	// 			const pastDate = new Date(1970, 0, 1).toUTCString()
+	// 			const cookieString = `${sessionName}=; Path=${cookieOptions.path || '/'}; Expires=${pastDate}; HttpOnly${cookieOptions.secure ? '; Secure' : ''}${cookieOptions.sameSite ? `; SameSite=${cookieOptions.sameSite}` : ''}`
 
-				res.setHeader('Set-Cookie', cookieString)
+	// 			res.setHeader('Set-Cookie', cookieString)
 
-				// Альтернативно, очищуємо з різними комбінаціями параметрів
-				res.clearCookie(sessionName, { path: '/' })
-				res.clearCookie(sessionName, {
-					path: cookieOptions.path || '/'
-				})
-				res.clearCookie(sessionName)
+	// 			// Альтернативно, очищуємо з різними комбінаціями параметрів
+	// 			res.clearCookie(sessionName, { path: '/' })
+	// 			res.clearCookie(sessionName, {
+	// 				path: cookieOptions.path || '/'
+	// 			})
+	// 			res.clearCookie(sessionName)
 
-				resolve()
-			})
-		})
-	}
+	// 			resolve()
+	// 		})
+	// 	})
+	// }
 
 	public async saveSession(req: Request, user: User) {
 		return new Promise((resolve, reject) => {
