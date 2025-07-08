@@ -541,7 +541,22 @@ export class GroupsService {
 						// Цьому учаснику винні
 						const existingDebt = debtDetails.get(debt.debtorId)
 						if (existingDebt) {
-							existingDebt.amount += debt.amount
+							if (existingDebt.type === 'member_owes_to') {
+								// Є взаємний борг, зачищуємо
+								if (existingDebt.amount > debt.amount) {
+									existingDebt.amount -= debt.amount
+								} else if (existingDebt.amount < debt.amount) {
+									existingDebt.amount =
+										debt.amount - existingDebt.amount
+									existingDebt.type = 'owes_to_member'
+								} else {
+									// Борги рівні, видаляємо запис
+									debtDetails.delete(debt.debtorId)
+								}
+							} else {
+								// Однотипний борг, додаємо
+								existingDebt.amount += debt.amount
+							}
 						} else {
 							debtDetails.set(debt.debtorId, {
 								user: debt.debtor,
@@ -553,7 +568,22 @@ export class GroupsService {
 						// Цей учасник винен
 						const existingDebt = debtDetails.get(debt.creditorId)
 						if (existingDebt) {
-							existingDebt.amount += debt.amount
+							if (existingDebt.type === 'owes_to_member') {
+								// Є взаємний борг, зачищуємо
+								if (existingDebt.amount > debt.amount) {
+									existingDebt.amount -= debt.amount
+								} else if (existingDebt.amount < debt.amount) {
+									existingDebt.amount =
+										debt.amount - existingDebt.amount
+									existingDebt.type = 'member_owes_to'
+								} else {
+									// Борги рівні, видаляємо запис
+									debtDetails.delete(debt.creditorId)
+								}
+							} else {
+								// Однотипний борг, додаємо
+								existingDebt.amount += debt.amount
+							}
 						} else {
 							debtDetails.set(debt.creditorId, {
 								user: debt.creditor,
