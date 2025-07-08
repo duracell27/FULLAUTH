@@ -159,54 +159,54 @@ export class AuthService {
 	// 	})
 	// }
 
-	// public async logout(req: Request, res: Response): Promise<void> {
-	// 	return new Promise((resolve, reject) => {
-	// 		if (!req.session) {
-	// 			return resolve() // Сесії немає, просто виходимо
-	// 		}
+	public async logout(req: Request, res: Response): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!req.session) {
+				return resolve() // Сесії немає, просто виходимо
+			}
 
-	// 		req.session.destroy(err => {
-	// 			if (err) {
-	// 				return reject(
-	// 					new InternalServerErrorException(
-	// 						'Error destroying session data.'
-	// 					)
-	// 				)
-	// 			}
+			req.session.destroy(err => {
+				if (err) {
+					return reject(
+						new InternalServerErrorException(
+							'Error destroying session data.'
+						)
+					)
+				}
 
-	// 			const sessionName =
-	// 				this.configService.getOrThrow<string>('SESSION_NAME')
-	// 			const cookieOptions = {
-	// 				domain: this.configService.getOrThrow<string>(
-	// 					'SESSION_DOMAIN'
-	// 				),
-	// 				path: this.configService.get<string>('SESSION_PATH', '/'), // Якщо у вас є SESSION_PATH, інакше '/'
-	// 				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	// 				httpOnly: this.configService.getOrThrow<boolean>(
-	// 					'SESSION_HTTP_ONLY',
-	// 					{ infer: true }
-	// 				), // infer: true для parseBoolean
-	// 				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	// 				secure: this.configService.getOrThrow<boolean>(
-	// 					'SESSION_SECURE',
-	// 					{ infer: true }
-	// 				), // infer: true для parseBoolean
-	// 				sameSite: this.configService.get<'lax' | 'strict' | 'none'>(
-	// 					'SESSION_SAMESITE',
-	// 					'none'
-	// 				)
-	// 			}
+				const sessionName =
+					this.configService.getOrThrow<string>('SESSION_NAME')
+				const cookieOptions = {
+					domain: this.configService.getOrThrow<string>(
+						'SESSION_DOMAIN'
+					),
+					path: this.configService.get<string>('SESSION_PATH', '/'), // Якщо у вас є SESSION_PATH, інакше '/'
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+					httpOnly: this.configService.getOrThrow<boolean>(
+						'SESSION_HTTP_ONLY',
+						{ infer: true }
+					), // infer: true для parseBoolean
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+					secure: this.configService.getOrThrow<boolean>(
+						'SESSION_SECURE',
+						{ infer: true }
+					), // infer: true для parseBoolean
+					sameSite: this.configService.get<'lax' | 'strict' | 'none'>(
+						'SESSION_SAMESITE',
+						'none'
+					)
+				}
 
-	// 			res.clearCookie(sessionName, cookieOptions)
+				res.clearCookie(sessionName, cookieOptions)
 
-	// 			// Перевірка, чи заголовок був встановлений (це може не працювати надійно до того, як відповідь буде надіслана)
-	// 			// const headers = res.getHeaders();
-	// 			// this.logger.log('Response headers after clearCookie (may not be final):', headers['set-cookie']);
+				// Перевірка, чи заголовок був встановлений (це може не працювати надійно до того, як відповідь буде надіслана)
+				// const headers = res.getHeaders();
+				// this.logger.log('Response headers after clearCookie (may not be final):', headers['set-cookie']);
 
-	// 			resolve()
-	// 		})
-	// 	})
-	// }
+				resolve()
+			})
+		})
+	}
 
 	// public async logout(req: Request, res: Response): Promise<void> {
 	// 	return new Promise((resolve, reject) => {
@@ -270,61 +270,62 @@ export class AuthService {
 	// 	})
 	// }
 
-	public async logout(req: Request, res: Response): Promise<void> {
-		const session = req.session
+	//РОБОЧИЙ НА СЕРВЕРІ
+	// public async logout(req: Request, res: Response): Promise<void> {
+	// 	const session = req.session
 
-		if (!session) {
-			// Якщо сесії немає, нічого не робимо
-			res.status(200).send()
-			return
-		}
+	// 	if (!session) {
+	// 		// Якщо сесії немає, нічого не робимо
+	// 		res.status(200).send()
+	// 		return
+	// 	}
 
-		// Використовуємо проміс для асинхронного destroy
-		return new Promise((resolve, reject) => {
-			session.destroy(err => {
-				if (err) {
-					// Логуємо помилку на сервері для відладки
-					console.error('Error destroying session:', err)
-					return reject(
-						new InternalServerErrorException(
-							'Could not destroy session.'
-						)
-					)
-				}
+	// 	// Використовуємо проміс для асинхронного destroy
+	// 	return new Promise((resolve, reject) => {
+	// 		session.destroy(err => {
+	// 			if (err) {
+	// 				// Логуємо помилку на сервері для відладки
+	// 				console.error('Error destroying session:', err)
+	// 				return reject(
+	// 					new InternalServerErrorException(
+	// 						'Could not destroy session.'
+	// 					)
+	// 				)
+	// 			}
 
-				// --- ЄДИНИЙ ПРАВИЛЬНИЙ СПОСІБ ОЧИЩЕННЯ COOKIE ---
+	// 			// --- ЄДИНИЙ ПРАВИЛЬНИЙ СПОСІБ ОЧИЩЕННЯ COOKIE ---
 
-				const sessionName =
-					this.configService.getOrThrow<string>('SESSION_NAME')
-				const sessionDomain =
-					this.configService.getOrThrow<string>('SESSION_DOMAIN')
+	// 			const sessionName =
+	// 				this.configService.getOrThrow<string>('SESSION_NAME')
+	// 			const sessionDomain =
+	// 				this.configService.getOrThrow<string>('SESSION_DOMAIN')
 
-				// Збираємо всі необхідні опції
-				const cookieOptions = {
-					domain: sessionDomain,
-					path: this.configService.get<string>('SESSION_PATH', '/'),
-					httpOnly: this.configService.getOrThrow<boolean>(
-						'SESSION_HTTP_ONLY',
-						{ infer: true }
-					),
-					secure: this.configService.getOrThrow<boolean>(
-						'SESSION_SECURE',
-						{ infer: true }
-					),
-					sameSite: this.configService.get<'none'>(
-						'SESSION_SAMESITE',
-						'none'
-					)
-				}
+	// 			// Збираємо всі необхідні опції
+	// 			const cookieOptions = {
+	// 				domain: sessionDomain,
+	// 				path: this.configService.get<string>('SESSION_PATH', '/'),
+	// 				httpOnly: this.configService.getOrThrow<boolean>(
+	// 					'SESSION_HTTP_ONLY',
+	// 					{ infer: true }
+	// 				),
+	// 				secure: this.configService.getOrThrow<boolean>(
+	// 					'SESSION_SECURE',
+	// 					{ infer: true }
+	// 				),
+	// 				sameSite: this.configService.get<'none'>(
+	// 					'SESSION_SAMESITE',
+	// 					'none'
+	// 				)
+	// 			}
 
-				// Робимо один-єдиний виклик clearCookie з усіма правильними опціями
-				res.clearCookie(sessionName, cookieOptions)
+	// 			// Робимо один-єдиний виклик clearCookie з усіма правильними опціями
+	// 			res.clearCookie(sessionName, cookieOptions)
 
-				// Просто завершуємо запит
-				resolve()
-			})
-		})
-	}
+	// 			// Просто завершуємо запит
+	// 			resolve()
+	// 		})
+	// 	})
+	// }
 
 	public async saveSession(req: Request, user: User) {
 		return new Promise((resolve, reject) => {

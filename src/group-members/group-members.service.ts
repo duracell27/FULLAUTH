@@ -4,9 +4,17 @@ import { MailService } from '@/libs/mail/mail.service'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UserService } from '@/user/user.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { GroupEntity, GroupMemberStatus, GroupRole } from '@prisma/client'
+import { GroupEntity, GroupMemberStatus, GroupRole, User } from '@prisma/client'
 
 type PartialGroup = Pick<GroupEntity, 'id' | 'name' | 'avatarUrl' | 'eventDate'>
+
+type UserSafe = Pick<User, 'id' | 'displayName' | 'picture'>
+
+type PartialGroupExtended = PartialGroup & {
+	membersCount: number
+	members: UserSafe[]
+	userBalance: number
+}
 
 @Injectable()
 export class GroupMembersService {
@@ -18,24 +26,114 @@ export class GroupMembersService {
 		private readonly friendsService: FriendsService
 	) {}
 
-	public async getUserGroups(userId: string): Promise<PartialGroup[]> {
-		const groupMembers: { group: PartialGroup }[] =
-			await this.prismaService.groupMember.findMany({
-				where: { userId: userId, status: GroupMemberStatus.ACCEPTED },
-				include: {
-					group: {
-						select: {
-							id: true,
-							name: true,
-							avatarUrl: true,
-							eventDate: true
+	// public async getUserGroups(userId: string): Promise<PartialGroup[]> {
+	// 	const groupMembers: { group: PartialGroup }[] =
+	// 		await this.prismaService.groupMember.findMany({
+	// 			where: { userId: userId, status: GroupMemberStatus.ACCEPTED },
+	// 			include: {
+	// 				group: {
+	// 					select: {
+	// 						id: true,
+	// 						name: true,
+	// 						avatarUrl: true,
+	// 						eventDate: true
+	// 					}
+	// 				}
+	// 			},
+	// 			orderBy: { group: { eventDate: 'desc' } }
+	// 		})
+
+	// 	return groupMembers.map(member => member.group)
+	// }
+
+	public async getUserGroups(
+		userId: string
+	): Promise<PartialGroupExtended[]> {
+		const groupMembers = await this.prismaService.groupMember.findMany({
+			where: { userId: userId, status: GroupMemberStatus.ACCEPTED },
+			include: {
+				group: {
+					select: {
+						id: true,
+						name: true,
+						avatarUrl: true,
+						eventDate: true,
+						// Включаємо всіх учасників групи для підрахунку
+						members: {
+							where: { status: GroupMemberStatus.ACCEPTED },
+							select: {
+								userId: true,
+								user: {
+									select: {
+										id: true,
+										displayName: true,
+										picture: true
+									}
+								}
+							}
 						}
 					}
-				},
-				orderBy: { group: { eventDate: 'desc' } }
-			})
+				}
+			},
+			orderBy: { group: { eventDate: 'desc' } }
+		})
 
-		return groupMembers.map(member => member.group)
+		// Для кожної групи рахуємо баланс користувача
+		const groupsWithBalance = await Promise.all(
+			groupMembers.map(async member => {
+				const groupId = member.group.id
+
+				// Рахуємо баланс користувача по групі (аналогічно до getGroupInfo)
+				// Скільки користувачу винні (він кредитор)
+				const totalOwedToUser = await this.prismaService.debt.aggregate(
+					{
+						where: {
+							creditorId: userId,
+							expense: { groupId: groupId }
+						},
+						_sum: { amount: true }
+					}
+				)
+
+				// Скільки користувач винен (він дебітор)
+				const totalOwedByUser = await this.prismaService.debt.aggregate(
+					{
+						where: {
+							debtorId: userId,
+							expense: { groupId: groupId }
+						},
+						_sum: { amount: true }
+					}
+				)
+
+				// Баланс = що мені винні - що я винен
+				// Якщо > 0, то мені винні. Якщо < 0, то я винен
+				const userBalance =
+					(totalOwedToUser._sum.amount || 0) -
+					(totalOwedByUser._sum.amount || 0)
+
+				// Отримуємо учасників з повною інформацією
+				const members: UserSafe[] = member.group.members.map(m => ({
+					id: m.user.id,
+					displayName: m.user.displayName,
+					picture: m.user.picture
+				}))
+
+				members.slice(0, 8)
+
+				return {
+					id: member.group.id,
+					name: member.group.name,
+					avatarUrl: member.group.avatarUrl,
+					eventDate: member.group.eventDate,
+					membersCount: member.group.members.length,
+					members,
+					userBalance
+				}
+			})
+		)
+
+		return groupsWithBalance
 	}
 
 	public async getUserGroupRequests(userId: string): Promise<PartialGroup[]> {
