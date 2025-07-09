@@ -280,6 +280,7 @@ model Expense {
   photoUrl     String?   @map("photo_url")
   splitType    SplitType @default(EQUAL) @map("split_type")
   date         DateTime  @default(now()) @map("date")
+  formData     Json?     @map("form_data")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 

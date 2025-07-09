@@ -6,7 +6,8 @@ import {
 	HttpCode,
 	HttpStatus,
 	Param,
-	Post
+	Post,
+	Put
 } from '@nestjs/common'
 import { ExpensesService } from './expenses.service'
 import { Authorization } from '@/auth/decorators/auth.decorator'
@@ -45,5 +46,26 @@ export class ExpensesController {
 		@Authorized('id') userId: string
 	) {
 		return this.expensesService.deleteExpense(groupId, userId)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Get(':expenseId/form-data')
+	public getExpenseFormData(
+		@Param('expenseId') expenseId: string,
+		@Authorized('id') userId: string
+	) {
+		return this.expensesService.getExpenseFormData(expenseId, userId)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Put(':expenseId')
+	public editExpense(
+		@Param('expenseId') expenseId: string,
+		@Authorized('id') userId: string,
+		@Body() dto: CreateExpenseDto
+	) {
+		return this.expensesService.editExpense(expenseId, userId, dto)
 	}
 }

@@ -4,27 +4,6 @@ import { PrismaService } from '@/prisma/prisma.service'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
 import { GroupMemberStatus, GroupRole } from '@prisma/client'
 
-// type GroupWithMembers = {
-// 	id: string
-// 	name: string
-// 	avatarUrl: string | null
-// 	isLocked: boolean
-// 	isFinished: boolean
-// 	totalExpenses: number
-// 	userTotalBalance: number
-// 	eventDate: Date
-// 	createdAt: Date
-// 	members: {
-// 		userId: string
-// 		role: GroupRole
-// 		user: {
-// 			id: string
-// 			displayName: string
-// 			picture: string | null
-// 		}
-// 	}[]
-// }
-
 type GroupWithMembers = {
 	id: string
 	name: string

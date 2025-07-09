@@ -7,6 +7,7 @@ import {
 import { CreateExpenseDto } from './dto/CreateExpense.dto'
 import { GroupMember, Prisma, SplitType } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
+import { InputJsonValue } from '@prisma/client/runtime/library'
 
 // Визначаємо тип, який буде повертатися
 // Він має ТОЧНО відповідати запиту в `findUnique` (включаючи `include`)
@@ -55,7 +56,10 @@ export class ExpensesService {
 					photoUrl: dto.photoUrl,
 					groupId: dto.groupId,
 					date: dto.date,
-					creatorId: creatorId
+					creatorId: creatorId,
+					formData: JSON.parse(
+						JSON.stringify(dto)
+					) as Prisma.InputJsonValue
 				}
 			})
 
@@ -387,9 +391,12 @@ export class ExpensesService {
 			userId,
 			expense.groupId
 		)
+		const isCreator = expense.creatorId === userId
 
-		if (!isUserAdmin) {
-			throw new BadRequestException('You are not admin of this group')
+		if (!isUserAdmin && !isCreator) {
+			throw new BadRequestException(
+				'You are not admin of this group or the creator of the expense'
+			)
 		}
 
 		await this.prismaService.expense.delete({
@@ -401,5 +408,63 @@ export class ExpensesService {
 		return true
 	}
 
-	// public async editExpense(
+	public async getExpenseFormData(expenseId: string, userId: string) {
+		const expense = await this.prismaService.expense.findUnique({
+			where: { id: expenseId },
+			select: { formData: true, groupId: true, creatorId: true }
+		})
+
+		if (!expense) {
+			throw new NotFoundException('Expense not found.')
+		}
+
+		const isUserAdmin = await this.groupMembersService.isUserAdminOfGroup(
+			userId,
+			expense.groupId
+		)
+		const isCreator = expense.creatorId === userId
+
+		if (!isUserAdmin && !isCreator) {
+			throw new BadRequestException(
+				'You can not edit this expense because you are not admin of this group or the creator of the expense'
+			)
+		}
+
+		return expense.formData as InputJsonValue
+	}
+
+	public async editExpense(
+		expenseId: string,
+		userId: string,
+		dto: CreateExpenseDto
+	) {
+		const expense = await this.prismaService.expense.findUnique({
+			where: { id: expenseId },
+			select: { formData: true, groupId: true, creatorId: true }
+		})
+
+		if (!expense) {
+			throw new NotFoundException('Expense not found.')
+		}
+
+		const isUserAdmin = await this.groupMembersService.isUserAdminOfGroup(
+			userId,
+			expense.groupId
+		)
+		const isCreator = expense.creatorId === userId
+
+		if (!isUserAdmin && !isCreator) {
+			throw new BadRequestException(
+				'You can not edit this expense because you are not admin of this group or the creator of the expense'
+			)
+		}
+
+		await this.prismaService.expense.delete({
+			where: { id: expenseId }
+		})
+
+		await this.addExpense(dto, userId)
+
+		return true
+	}
 }

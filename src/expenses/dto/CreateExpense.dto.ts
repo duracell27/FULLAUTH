@@ -8,7 +8,8 @@ import {
 	IsUUID,
 	ValidateNested,
 	Min,
-	IsDate
+	IsDate,
+	IsObject
 } from 'class-validator'
 import { Type } from 'class-transformer'
 import { SplitType } from '@prisma/client' // Імпортуємо енум з Prisma
@@ -70,6 +71,10 @@ export class CreateExpenseDto {
 	@Type(() => Date)
 	@IsOptional()
 	date?: Date
+
+	@IsOptional()
+	@IsObject()
+	formData?: Record<string, any>
 
 	@IsArray()
 	@ValidateNested({ each: true })
