@@ -328,11 +328,14 @@ export class GroupsService {
 							}
 						},
 						payers: {
-							where: {
-								payerId: userId
-							},
 							select: {
-								amount: true
+								payer: {
+									select: {
+										id: true,
+										displayName: true,
+										picture: true
+									}
+								}
 							}
 						},
 						splits: {
@@ -398,6 +401,7 @@ export class GroupsService {
 				date: expense.date,
 				createdAt: expense.createdAt,
 				creator: expense.creator,
+				payers: expense.payers,
 				userBalance // <-- використовуємо новий, правильно розрахований баланс
 			}
 		})

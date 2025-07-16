@@ -14,6 +14,7 @@ import { GroupsModule } from './groups/groups.module'
 import { GroupMembersModule } from './group-members/group-members.module'
 import { ExpensesModule } from './expenses/expenses.module';
 import { SummaryModule } from './summary/summary.module';
+import { DebtsModule } from './debts/debts.module';
 
 @Module({
 	imports: [
@@ -33,7 +34,8 @@ import { SummaryModule } from './summary/summary.module';
 		GroupsModule,
 		GroupMembersModule,
 		ExpensesModule,
-		SummaryModule
+		SummaryModule,
+		DebtsModule
 	]
 })
 export class AppModule {}

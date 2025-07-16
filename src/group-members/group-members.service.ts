@@ -26,26 +26,6 @@ export class GroupMembersService {
 		private readonly friendsService: FriendsService
 	) {}
 
-	// public async getUserGroups(userId: string): Promise<PartialGroup[]> {
-	// 	const groupMembers: { group: PartialGroup }[] =
-	// 		await this.prismaService.groupMember.findMany({
-	// 			where: { userId: userId, status: GroupMemberStatus.ACCEPTED },
-	// 			include: {
-	// 				group: {
-	// 					select: {
-	// 						id: true,
-	// 						name: true,
-	// 						avatarUrl: true,
-	// 						eventDate: true
-	// 					}
-	// 				}
-	// 			},
-	// 			orderBy: { group: { eventDate: 'desc' } }
-	// 		})
-
-	// 	return groupMembers.map(member => member.group)
-	// }
-
 	public async getUserGroups(
 		userId: string
 	): Promise<PartialGroupExtended[]> {
@@ -292,6 +272,30 @@ export class GroupMembersService {
 
 		if (!isUserExist) {
 			throw new BadRequestException('User not found')
+		}
+
+		// Перевірка, чи користувач задіяний у розрахунках групи
+		const isPayer = await this.prismaService.expensePayment.findFirst({
+			where: {
+				payerId: recieverUserId,
+				expense: { groupId }
+			}
+		})
+
+		const isDebtorOrCreditor = await this.prismaService.debt.findFirst({
+			where: {
+				expense: { groupId },
+				OR: [
+					{ debtorId: recieverUserId },
+					{ creditorId: recieverUserId }
+				]
+			}
+		})
+
+		if (isPayer || isDebtorOrCreditor) {
+			throw new BadRequestException(
+				'User is involved in group expenses or debts and cannot be removed.'
+			)
 		}
 
 		const isGroupAdmin = await this.isUserAdminOfGroup(
