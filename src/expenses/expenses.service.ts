@@ -8,6 +8,7 @@ import { CreateExpenseDto } from './dto/CreateExpense.dto'
 import { GroupMember, Prisma, SplitType } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
 import { InputJsonValue } from '@prisma/client/runtime/library'
+import { round2 } from '@/libs/common/utils/round2'
 
 // Визначаємо тип, який буде повертатися
 // Він має ТОЧНО відповідати запиту в `findUnique` (включаючи `include`)
@@ -36,6 +37,14 @@ export class ExpensesService {
 				'Сума платежів не збігається із загальною сумою витрати.'
 			)
 		}
+
+		const isUserGroupMember =
+			await this.groupMembersService.isUserGroupMember(
+				creatorId,
+				dto.groupId
+			)
+		if (!isUserGroupMember)
+			throw new BadRequestException('You are not a member of this group')
 
 		const members = await this.prismaService.groupMember.findMany({
 			where: {
@@ -132,8 +141,8 @@ export class ExpensesService {
 						expenseId: expense.id,
 						debtorId: debtor.userId,
 						creditorId: creditor.userId,
-						amount: paymentAmount,
-						remaining: paymentAmount, // Початково залишок дорівнює повній сумі
+						amount: round2(paymentAmount),
+						remaining: round2(paymentAmount), // Початково залишок дорівнює повній сумі
 						// Зберігаємо параметри розрахунку для історії
 						percentage: originalDebtorData?.percentage,
 						shares: originalDebtorData?.shares

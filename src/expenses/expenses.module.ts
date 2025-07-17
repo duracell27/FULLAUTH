@@ -7,6 +7,7 @@ import { GroupMembersService } from '@/group-members/group-members.service'
 import { GroupsService } from '@/groups/groups.service'
 import { MailService } from '@/libs/mail/mail.service'
 import { FriendsService } from '@/friends/friends.service'
+import { DebtsService } from '@/debts/debts.service'
 
 @Module({
 	controllers: [ExpensesController],
@@ -17,7 +18,8 @@ import { FriendsService } from '@/friends/friends.service'
 		GroupMembersService,
 		MailService,
 		GroupsService,
-		FriendsService
+		FriendsService,
+		DebtsService
 	]
 })
 export class ExpensesModule {}

@@ -120,160 +120,6 @@ export class GroupsService {
 		return true
 	}
 
-	// public async getGroupInfo(
-	// 	groupId: string,
-	// 	userId: string
-	// ): Promise<GroupWithMembers> {
-	// 	const group = await this.prismaService.groupEntity.findFirst({
-	// 		where: {
-	// 			id: groupId
-	// 		},
-	// 		select: {
-	// 			id: true,
-	// 			name: true,
-	// 			avatarUrl: true,
-	// 			eventDate: true,
-	// 			isLocked: true,
-	// 			isFinished: true,
-	// 			createdAt: true,
-	// 			members: {
-	// 				where: {
-	// 					status: {
-	// 						in: [
-	// 							GroupMemberStatus.PENDING,
-	// 							GroupMemberStatus.ACCEPTED
-	// 						]
-	// 					}
-	// 				},
-	// 				select: {
-	// 					userId: true,
-	// 					role: true,
-	// 					status: true,
-	// 					user: {
-	// 						select: {
-	// 							id: true,
-	// 							displayName: true,
-	// 							picture: true
-	// 						}
-	// 					}
-	// 				}
-	// 			},
-	// 			expenses: {
-	// 				select: {
-	// 					id: true,
-	// 					amount: true,
-	// 					description: true,
-	// 					photoUrl: true,
-	// 					date: true,
-	// 					createdAt: true,
-	// 					creator: {
-	// 						select: {
-	// 							id: true,
-	// 							displayName: true,
-	// 							picture: true
-	// 						}
-	// 					},
-	// 					payers: {
-	// 						where: {
-	// 							payerId: userId
-	// 						},
-	// 						select: {
-	// 							amount: true
-	// 						}
-	// 					},
-	// 					splits: {
-	// 						// Виправлення: тільки записи де користувач є боржником
-	// 						where: {
-	// 							OR: [
-	// 								{ debtorId: userId },
-	// 								{ creditorId: userId }
-	// 							]
-	// 						},
-	// 						select: {
-	// 							amount: true,
-	// 							debtorId: true,
-	// 							creditorId: true
-	// 						}
-	// 					}
-	// 				},
-	// 				orderBy: {
-	// 					createdAt: 'desc'
-	// 				}
-	// 			}
-	// 		}
-	// 	})
-
-	// 	// Перевірка, чи існує група
-	// 	if (!group) {
-	// 		throw new BadRequestException('Group not found')
-	// 	}
-
-	// 	// Явна перевірка, чи members є масивом (хоча тип гарантує, що це масив)
-	// 	if (!Array.isArray(group.members)) {
-	// 		throw new BadRequestException(
-	// 			'Group members are not properly defined'
-	// 		)
-	// 	}
-
-	// 	// Перевірка, чи є користувач у групі
-	// 	const isMember = group.members.some(member => member.userId === userId)
-	// 	if (!isMember) {
-	// 		throw new BadRequestException('User is not in the group')
-	// 	}
-
-	// 	// Обчислюємо баланс користувача для кожної витрати
-	// 	const expensesWithBalance = group.expenses.map(expense => {
-	// 		const totalOwedToUser = expense.splits
-	// 			.filter(split => split.creditorId === userId)
-	// 			.reduce((sum, split) => sum + split.amount, 0)
-
-	// 		// Гроші, що поточний юзер винен іншим за цю витрату
-	// 		const totalOwedByUser = expense.splits
-	// 			.filter(split => split.debtorId === userId)
-	// 			.reduce((sum, split) => sum + split.amount, 0)
-
-	// 		// Баланс - це чистий результат: кому винні мінус що винні.
-	// 		// Якщо результат > 0, вам винні. Якщо < 0, ви винні.
-	// 		const userBalance = totalOwedToUser - totalOwedByUser
-
-	// 		return {
-	// 			id: expense.id,
-	// 			amount: expense.amount,
-	// 			description: expense.description,
-	// 			photoUrl: expense.photoUrl,
-	// 			date: expense.date,
-	// 			createdAt: expense.createdAt,
-	// 			creator: expense.creator,
-	// 			userBalance // <-- використовуємо новий, правильно розрахований баланс
-	// 		}
-	// 	})
-
-	// 	// --- НОВИЙ КОД: Обчислення загальних сум ---
-
-	// 	// 1. Загальна сума всіх витрат у групі
-	// 	// Ми використовуємо початковий масив `group.expenses`,
-	// 	// оскільки там є повна сума кожної витрати.
-	// 	const totalExpenses = group.expenses.reduce(
-	// 		(sum, expense) => sum + expense.amount,
-	// 		0
-	// 	)
-
-	// 	// 2. Загальний баланс користувача по всій групі
-	// 	// Ми використовуємо новий масив `expensesWithBalance`,
-	// 	// оскільки там вже розрахований баланс по кожній витраті.
-	// 	const userTotalBalance = expensesWithBalance.reduce(
-	// 		(sum, expense) => sum + expense.userBalance,
-	// 		0
-	// 	)
-
-	// 	return {
-	// 		...group,
-	// 		expenses: expensesWithBalance,
-	// 		totalExpenses, // <-- Додано
-	// 		userTotalBalance // <-- Додано
-	// 	} as GroupWithMembers
-	// }
-
 	public async getGroupInfo(
 		groupId: string,
 		userId: string
@@ -436,7 +282,8 @@ export class GroupsService {
 			select: {
 				debtorId: true,
 				creditorId: true,
-				amount: true,
+				// amount: true,
+				remaining: true,
 				debtor: {
 					select: {
 						id: true,
@@ -450,9 +297,42 @@ export class GroupsService {
 						displayName: true,
 						picture: true
 					}
+				},
+				payments: {
+					select: {
+						amount: true,
+						createdAt: true
+					}
 				}
 			}
 		})
+
+		type PaymentBetweenMembers = {
+			from: { id: string; displayName: string; picture: string | null }
+			to: { id: string; displayName: string; picture: string | null }
+			amount: number
+		}
+		const paymentsMap = new Map<string, PaymentBetweenMembers>()
+
+		for (const debt of allDebts) {
+			const totalPaid = debt.payments.reduce(
+				(sum, p) => sum + p.amount,
+				0
+			)
+			if (totalPaid > 0) {
+				const key = debt.debtorId + '->' + debt.creditorId
+				if (paymentsMap.has(key)) {
+					paymentsMap.get(key)!.amount += totalPaid
+				} else {
+					paymentsMap.set(key, {
+						from: debt.debtor,
+						to: debt.creditor,
+						amount: totalPaid
+					})
+				}
+			}
+		}
+		const paymentsBetweenMembers = Array.from(paymentsMap.values())
 
 		// Створюємо Map для швидкого доступу до балансів учасників
 		const memberBalances = new Map<string, number>()
@@ -462,16 +342,27 @@ export class GroupsService {
 			memberBalances.set(member.userId, 0)
 		})
 
+		console.log('test', memberBalances)
+
 		// Обчислюємо баланс кожного учасника
 		allDebts.forEach(debt => {
 			// Кредитор отримує позитивний баланс (йому винні)
 			const creditorBalance = memberBalances.get(debt.creditorId) || 0
-			memberBalances.set(debt.creditorId, creditorBalance + debt.amount)
+			memberBalances.set(
+				debt.creditorId,
+				creditorBalance + debt.remaining
+			)
 
 			// Боржник отримує негативний баланс (він винен)
+			console.log('debt', debt.remaining)
+			console.log('debtorId', debt.debtorId)
 			const debtorBalance = memberBalances.get(debt.debtorId) || 0
-			memberBalances.set(debt.debtorId, debtorBalance - debt.amount)
+			console.log('debtorBalance', debtorBalance)
+			console.log('----------------------')
+			memberBalances.set(debt.debtorId, debtorBalance - debt.remaining)
 		})
+
+		console.log('test2', memberBalances)
 
 		// Створюємо структуру для акордеону з деталями боргів
 		const memberBalanceDetails: Array<{
@@ -526,11 +417,13 @@ export class GroupsService {
 						if (existingDebt) {
 							if (existingDebt.type === 'member_owes_to') {
 								// Є взаємний борг, зачищуємо
-								if (existingDebt.amount > debt.amount) {
-									existingDebt.amount -= debt.amount
-								} else if (existingDebt.amount < debt.amount) {
+								if (existingDebt.amount > debt.remaining) {
+									existingDebt.amount -= debt.remaining
+								} else if (
+									existingDebt.amount < debt.remaining
+								) {
 									existingDebt.amount =
-										debt.amount - existingDebt.amount
+										debt.remaining - existingDebt.amount
 									existingDebt.type = 'owes_to_member'
 								} else {
 									// Борги рівні, видаляємо запис
@@ -538,12 +431,12 @@ export class GroupsService {
 								}
 							} else {
 								// Однотипний борг, додаємо
-								existingDebt.amount += debt.amount
+								existingDebt.amount += debt.remaining
 							}
 						} else {
 							debtDetails.set(debt.debtorId, {
 								user: debt.debtor,
-								amount: debt.amount,
+								amount: debt.remaining,
 								type: 'owes_to_member'
 							})
 						}
@@ -553,11 +446,13 @@ export class GroupsService {
 						if (existingDebt) {
 							if (existingDebt.type === 'owes_to_member') {
 								// Є взаємний борг, зачищуємо
-								if (existingDebt.amount > debt.amount) {
-									existingDebt.amount -= debt.amount
-								} else if (existingDebt.amount < debt.amount) {
+								if (existingDebt.amount > debt.remaining) {
+									existingDebt.amount -= debt.remaining
+								} else if (
+									existingDebt.amount < debt.remaining
+								) {
 									existingDebt.amount =
-										debt.amount - existingDebt.amount
+										debt.remaining - existingDebt.amount
 									existingDebt.type = 'member_owes_to'
 								} else {
 									// Борги рівні, видаляємо запис
@@ -565,12 +460,12 @@ export class GroupsService {
 								}
 							} else {
 								// Однотипний борг, додаємо
-								existingDebt.amount += debt.amount
+								existingDebt.amount += debt.remaining
 							}
 						} else {
 							debtDetails.set(debt.creditorId, {
 								user: debt.creditor,
-								amount: debt.amount,
+								amount: debt.remaining,
 								type: 'member_owes_to'
 							})
 						}
@@ -598,7 +493,8 @@ export class GroupsService {
 			expenses: expensesWithBalance,
 			totalExpenses,
 			userTotalBalance,
-			memberBalanceDetails // <-- Додано нове поле для акордеону
+			memberBalanceDetails, // <-- Додано нове поле для акордеону
+			paymentsBetweenMembers // платежі
 		} as GroupWithMembers
 	}
 

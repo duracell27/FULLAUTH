@@ -76,7 +76,7 @@ export class SummaryService {
 			// Розраховуємо суму для балансу.
 			// Якщо я боржник (isDebtor), мій баланс з іншим користувачем зменшується (стає негативним).
 			// Якщо я кредитор, мій баланс збільшується (стає позитивним).
-			const signedAmount = isDebtor ? -debt.amount : debt.amount
+			const signedAmount = isDebtor ? -debt.remaining : debt.remaining
 
 			const group = debt.expense.group
 
