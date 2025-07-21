@@ -316,6 +316,7 @@ model Debt {
   shares       Int?        @map("shares")
   extraAmount  Float?      @map("extra_amount")
   status       DebtStatus  @default(PENDING)
+  isActual     Boolean     @default(true) @map("is_actual")
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 

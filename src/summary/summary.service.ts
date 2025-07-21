@@ -37,7 +37,8 @@ export class SummaryService {
 				OR: [{ debtorId: userId }, { creditorId: userId }],
 				// Можливо, ви захочете виключити врегульовані борги,
 				// але для загального балансу краще враховувати всю історію.
-				status: 'PENDING'
+				status: 'PENDING',
+				isActual: true
 			},
 			include: {
 				debtor: true, // Інформація про боржника

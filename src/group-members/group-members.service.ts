@@ -69,6 +69,7 @@ export class GroupMembersService {
 					{
 						where: {
 							creditorId: userId,
+							isActual: true,
 							expense: { groupId: groupId }
 						},
 						_sum: { amount: true }

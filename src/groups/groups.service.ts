@@ -185,12 +185,12 @@ export class GroupsService {
 							}
 						},
 						splits: {
-							// Виправлення: тільки записи де користувач є боржником
 							where: {
 								OR: [
 									{ debtorId: userId },
 									{ creditorId: userId }
-								]
+								],
+								isActual: true
 							},
 							select: {
 								amount: true,
@@ -342,8 +342,6 @@ export class GroupsService {
 			memberBalances.set(member.userId, 0)
 		})
 
-		console.log('test', memberBalances)
-
 		// Обчислюємо баланс кожного учасника
 		allDebts.forEach(debt => {
 			// Кредитор отримує позитивний баланс (йому винні)
@@ -354,15 +352,11 @@ export class GroupsService {
 			)
 
 			// Боржник отримує негативний баланс (він винен)
-			console.log('debt', debt.remaining)
-			console.log('debtorId', debt.debtorId)
+
 			const debtorBalance = memberBalances.get(debt.debtorId) || 0
-			console.log('debtorBalance', debtorBalance)
-			console.log('----------------------')
+
 			memberBalances.set(debt.debtorId, debtorBalance - debt.remaining)
 		})
-
-		console.log('test2', memberBalances)
 
 		// Створюємо структуру для акордеону з деталями боргів
 		const memberBalanceDetails: Array<{

@@ -354,6 +354,7 @@ export class ExpensesService {
 				},
 				// Включаємо борги (хто скільки винен)
 				splits: {
+					where: { isActual: true },
 					include: {
 						// Для кожного боржника включаємо дані користувача
 						debtor: {
@@ -487,6 +488,12 @@ export class ExpensesService {
 		})
 
 		await this.prismaService.$transaction(async tx => {
+			// 0. Перед створенням/оновленням боргів — всі старі робимо неактуальними
+			await tx.debt.updateMany({
+				where: { expenseId },
+				data: { isActual: false }
+			})
+
 			// 1. Оновлюємо саму витрату
 			await tx.expense.update({
 				where: { id: expenseId },
@@ -575,7 +582,8 @@ export class ExpensesService {
 									newRemaining === 0 ? 'SETTLED' : 'PENDING',
 								percentage: originalDebtorData?.percentage,
 								shares: originalDebtorData?.shares,
-								extraAmount: originalDebtorData?.extraAmount
+								extraAmount: originalDebtorData?.extraAmount,
+								isActual: true
 							}
 						})
 					} else {
@@ -589,7 +597,8 @@ export class ExpensesService {
 								percentage: originalDebtorData?.percentage,
 								shares: originalDebtorData?.shares,
 								extraAmount: originalDebtorData?.extraAmount,
-								status: 'PENDING'
+								status: 'PENDING',
+								isActual: true
 							}
 						})
 					}
