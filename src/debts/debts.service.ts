@@ -72,6 +72,56 @@ export class DebtsService {
 
 				localAmountLeft -= payAmount
 			}
+
+			const [directDebts, reverseDebts] = await Promise.all([
+				tx.debt.findMany({
+					where: {
+						debtorId: dto.debtorId,
+						creditorId: dto.creditorId,
+						status: DebtStatus.PENDING,
+						expense: { groupId: dto.groupId }
+					}
+				}),
+				tx.debt.findMany({
+					where: {
+						debtorId: dto.creditorId,
+						creditorId: dto.debtorId,
+						status: DebtStatus.PENDING,
+						expense: { groupId: dto.groupId }
+					}
+				})
+			])
+
+			const directSum = directDebts.reduce(
+				(sum, d) => sum + d.remaining,
+				0
+			)
+			const reverseSum = reverseDebts.reduce(
+				(sum, d) => sum + d.remaining,
+				0
+			)
+
+			if (Math.abs(directSum - reverseSum) < 0.01 && directSum > 0) {
+				await tx.debt.updateMany({
+					where: {
+						OR: [
+							{
+								debtorId: dto.debtorId,
+								creditorId: dto.creditorId,
+								status: DebtStatus.PENDING,
+								expense: { groupId: dto.groupId }
+							},
+							{
+								debtorId: dto.creditorId,
+								creditorId: dto.debtorId,
+								status: DebtStatus.PENDING,
+								expense: { groupId: dto.groupId }
+							}
+						]
+					},
+					data: { remaining: 0, status: DebtStatus.SETTLED }
+				})
+			}
 		})
 
 		return true

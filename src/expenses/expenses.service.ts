@@ -408,6 +408,20 @@ export class ExpensesService {
 			)
 		}
 
+		const paymentsCount = await this.prismaService.debtPayment.count({
+			where: {
+				debt: {
+					expenseId: expenseId
+				}
+			}
+		})
+
+		if (paymentsCount > 0) {
+			throw new BadRequestException(
+				'Can not delete expense, because debts have been paid'
+			)
+		}
+
 		await this.prismaService.expense.delete({
 			where: {
 				id: expenseId
@@ -449,7 +463,7 @@ export class ExpensesService {
 	) {
 		const expense = await this.prismaService.expense.findUnique({
 			where: { id: expenseId },
-			select: { formData: true, groupId: true, creatorId: true }
+			select: { groupId: true, creatorId: true }
 		})
 
 		if (!expense) {
@@ -468,11 +482,141 @@ export class ExpensesService {
 			)
 		}
 
-		await this.prismaService.expense.delete({
-			where: { id: expenseId }
+		const members = await this.prismaService.groupMember.findMany({
+			where: { groupId: dto.groupId }
 		})
 
-		await this.addExpense(dto, userId)
+		await this.prismaService.$transaction(async tx => {
+			// 1. Оновлюємо саму витрату
+			await tx.expense.update({
+				where: { id: expenseId },
+				data: {
+					description: dto.description,
+					amount: dto.amount,
+					splitType: dto.splitType,
+					photoUrl: dto.photoUrl,
+					date: dto.date,
+					formData: JSON.parse(
+						JSON.stringify(dto)
+					) as Prisma.InputJsonValue
+				}
+			})
+
+			// 2. Оновлюємо платників (ExpensePayment)
+			await tx.expensePayment.deleteMany({ where: { expenseId } })
+			await tx.expensePayment.createMany({
+				data: dto.payers.map(payer => ({
+					expenseId,
+					payerId: payer.userId,
+					amount: payer.amount
+				}))
+			})
+
+			// 3. Оновлюємо борги (Debt)
+			const oldDebts: Awaited<ReturnType<typeof tx.debt.findMany>> =
+				await tx.debt.findMany({ where: { expenseId } })
+			const oldDebtsMap: Map<string, (typeof oldDebts)[number]> =
+				new Map()
+			for (const d of oldDebts) {
+				oldDebtsMap.set(`${d.debtorId}|${d.creditorId}`, d)
+			}
+
+			// Розрахунок нових боргів (як у addExpense)
+			const userBalances = new Map<string, number>()
+			for (const payer of dto.payers) {
+				userBalances.set(
+					payer.userId,
+					(userBalances.get(payer.userId) || 0) + payer.amount
+				)
+			}
+			const debtorShares = this.calculateDebtorShares(dto, members)
+			for (const [userId, share] of debtorShares.entries()) {
+				userBalances.set(
+					userId,
+					(userBalances.get(userId) || 0) - share
+				)
+			}
+			const debtors: { userId: string; amount: number }[] = []
+			const creditors: { userId: string; amount: number }[] = []
+			for (const [userId, balance] of userBalances.entries()) {
+				if (balance < -0.01) {
+					debtors.push({ userId, amount: -balance })
+				} else if (balance > 0.01) {
+					creditors.push({ userId, amount: balance })
+				}
+			}
+
+			const processedDebts = new Set<string>()
+			for (const debtor of debtors) {
+				let debtAmountLeft = debtor.amount
+				const originalDebtorData = dto.debtors.find(
+					d => d.userId === debtor.userId
+				)
+				for (const creditor of creditors) {
+					if (creditor.amount <= 0 || debtAmountLeft <= 0) continue
+					const paymentAmount = Math.min(
+						debtAmountLeft,
+						creditor.amount
+					)
+					const key = `${debtor.userId}|${creditor.userId}`
+					const oldDebt = oldDebtsMap.get(key)
+					if (oldDebt) {
+						const paid = oldDebt.amount - oldDebt.remaining
+						const newRemaining = Math.max(
+							round2(paymentAmount) - paid,
+							0
+						)
+						await tx.debt.update({
+							where: { id: oldDebt.id },
+							data: {
+								amount: round2(paymentAmount),
+								remaining: newRemaining,
+								status:
+									newRemaining === 0 ? 'SETTLED' : 'PENDING',
+								percentage: originalDebtorData?.percentage,
+								shares: originalDebtorData?.shares,
+								extraAmount: originalDebtorData?.extraAmount
+							}
+						})
+					} else {
+						await tx.debt.create({
+							data: {
+								expenseId,
+								debtorId: debtor.userId,
+								creditorId: creditor.userId,
+								amount: round2(paymentAmount),
+								remaining: round2(paymentAmount),
+								percentage: originalDebtorData?.percentage,
+								shares: originalDebtorData?.shares,
+								extraAmount: originalDebtorData?.extraAmount,
+								status: 'PENDING'
+							}
+						})
+					}
+					processedDebts.add(key)
+					debtAmountLeft -= paymentAmount
+					creditor.amount -= paymentAmount
+				}
+			}
+
+			// Старі борги, яких більше немає у новій схемі
+			for (const oldDebt of oldDebts) {
+				const key = `${oldDebt.debtorId}|${oldDebt.creditorId}`
+				if (!processedDebts.has(key)) {
+					const payments = await tx.debtPayment.count({
+						where: { debtId: oldDebt.id }
+					})
+					if (payments > 0) {
+						await tx.debt.update({
+							where: { id: oldDebt.id },
+							data: { remaining: 0, status: 'SETTLED' }
+						})
+					} else {
+						await tx.debt.delete({ where: { id: oldDebt.id } })
+					}
+				}
+			}
+		})
 
 		return true
 	}
