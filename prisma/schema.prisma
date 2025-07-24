@@ -334,6 +334,7 @@ model DebtPayment {
   debtId    String   @map("debt_id")
   amount    Float
   createdAt DateTime @default(now()) @map("created_at")
+  isActual  Boolean  @default(true) @map("is_actual")
 
   debt      Debt     @relation("DebtPayments", fields: [debtId], references: [id], onDelete: Cascade)
 

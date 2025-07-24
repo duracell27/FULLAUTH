@@ -586,6 +586,10 @@ export class ExpensesService {
 								isActual: true
 							}
 						})
+						await tx.debtPayment.updateMany({
+							where: { debtId: oldDebt.id },
+							data: { isActual: true }
+						})
 					} else {
 						await tx.debt.create({
 							data: {
@@ -618,7 +622,16 @@ export class ExpensesService {
 					if (payments > 0) {
 						await tx.debt.update({
 							where: { id: oldDebt.id },
-							data: { remaining: 0, status: 'SETTLED' }
+							data: {
+								remaining: 0,
+								status: 'SETTLED',
+								isActual: false
+							}
+						})
+						// ОНОВЛЮЄМО ВСІ ПЛАТЕЖІ ПО ЦЬОМУ БОРГУ
+						await tx.debtPayment.updateMany({
+							where: { debtId: oldDebt.id },
+							data: { isActual: false }
 						})
 					} else {
 						await tx.debt.delete({ where: { id: oldDebt.id } })

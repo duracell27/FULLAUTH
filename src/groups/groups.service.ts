@@ -282,7 +282,6 @@ export class GroupsService {
 			select: {
 				debtorId: true,
 				creditorId: true,
-				// amount: true,
 				remaining: true,
 				debtor: {
 					select: {
@@ -301,7 +300,8 @@ export class GroupsService {
 				payments: {
 					select: {
 						amount: true,
-						createdAt: true
+						createdAt: true,
+						isActual: true
 					}
 				}
 			}
@@ -313,8 +313,10 @@ export class GroupsService {
 			amount: number
 		}
 		const paymentsMap = new Map<string, PaymentBetweenMembers>()
+		const overpaysMap = new Map<string, PaymentBetweenMembers>()
 
 		for (const debt of allDebts) {
+			// ВСІ платежі (isActual true + false)
 			const totalPaid = debt.payments.reduce(
 				(sum, p) => sum + p.amount,
 				0
@@ -331,8 +333,26 @@ export class GroupsService {
 					})
 				}
 			}
+
+			// Overpays (isActual: false)
+			const overpaid = debt.payments
+				.filter(p => !p.isActual)
+				.reduce((sum, p) => sum + p.amount, 0)
+			if (overpaid > 0) {
+				const key = debt.debtorId + '->' + debt.creditorId
+				if (overpaysMap.has(key)) {
+					overpaysMap.get(key)!.amount += overpaid
+				} else {
+					overpaysMap.set(key, {
+						from: debt.debtor,
+						to: debt.creditor,
+						amount: overpaid
+					})
+				}
+			}
 		}
 		const paymentsBetweenMembers = Array.from(paymentsMap.values())
+		const overpays = Array.from(overpaysMap.values())
 
 		// Створюємо Map для швидкого доступу до балансів учасників
 		const memberBalances = new Map<string, number>()
@@ -488,7 +508,9 @@ export class GroupsService {
 			totalExpenses,
 			userTotalBalance,
 			memberBalanceDetails, // <-- Додано нове поле для акордеону
-			paymentsBetweenMembers // платежі
+			paymentsBetweenMembers,
+			overpays
+			// платежі
 		} as GroupWithMembers
 	}
 
