@@ -82,6 +82,27 @@ export class GroupsService {
 			throw new BadRequestException('You are not admin of this group')
 		}
 
+		if (dto.isFinished === true) {
+			// Перевіряємо, чи є невиплачені борги у групі
+			const allDebts = await this.prismaService.debt.findMany({
+				where: {
+					expense: {
+						groupId: dto.groupId
+					}
+				},
+				select: {
+					remaining: true
+				}
+			})
+
+			const hasUnpaidDebts = allDebts.some(debt => debt.remaining > 0)
+			if (hasUnpaidDebts) {
+				throw new BadRequestException(
+					'Групу не можна завершити, поки є невиплачені борги'
+				)
+			}
+		}
+
 		const group = await this.prismaService.groupEntity.update({
 			where: {
 				id: dto.groupId
@@ -109,6 +130,34 @@ export class GroupsService {
 
 		if (!userGroupAdmin) {
 			throw new BadRequestException('You are not admin of this group')
+		}
+
+		// Перевірка: групу можна видалити лише якщо вона завершена і немає невиплачених боргів
+		const group = await this.prismaService.groupEntity.findFirst({
+			where: { id: groupId },
+			select: { isFinished: true }
+		})
+		if (!group?.isFinished) {
+			throw new BadRequestException(
+				'You can only delete a group if it is finished. You can finish it in the group settings when editing'
+			)
+		}
+
+		const allDebts = await this.prismaService.debt.findMany({
+			where: {
+				expense: {
+					groupId: groupId
+				}
+			},
+			select: {
+				remaining: true
+			}
+		})
+		const hasUnpaidDebts = allDebts.some(debt => debt.remaining > 0)
+		if (hasUnpaidDebts) {
+			throw new BadRequestException(
+				'Group cannot be deleted while there are unpaid debts'
+			)
 		}
 
 		await this.prismaService.groupEntity.delete({

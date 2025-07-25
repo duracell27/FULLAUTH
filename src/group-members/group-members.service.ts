@@ -6,7 +6,10 @@ import { UserService } from '@/user/user.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { GroupEntity, GroupMemberStatus, GroupRole, User } from '@prisma/client'
 
-type PartialGroup = Pick<GroupEntity, 'id' | 'name' | 'avatarUrl' | 'eventDate'>
+type PartialGroup = Pick<
+	GroupEntity,
+	'id' | 'name' | 'avatarUrl' | 'eventDate' | 'isFinished'
+>
 
 type UserSafe = Pick<User, 'id' | 'displayName' | 'picture'>
 
@@ -26,9 +29,10 @@ export class GroupMembersService {
 		private readonly friendsService: FriendsService
 	) {}
 
-	public async getUserGroups(
-		userId: string
-	): Promise<PartialGroupExtended[]> {
+	public async getUserGroups(userId: string): Promise<{
+		finished: PartialGroupExtended[]
+		active: PartialGroupExtended[]
+	}> {
 		const groupMembers = await this.prismaService.groupMember.findMany({
 			where: { userId: userId, status: GroupMemberStatus.ACCEPTED },
 			include: {
@@ -38,7 +42,7 @@ export class GroupMembersService {
 						name: true,
 						avatarUrl: true,
 						eventDate: true,
-						// Включаємо всіх учасників групи для підрахунку
+						isFinished: true,
 						members: {
 							where: { status: GroupMemberStatus.ACCEPTED },
 							select: {
@@ -58,13 +62,9 @@ export class GroupMembersService {
 			orderBy: { group: { eventDate: 'desc' } }
 		})
 
-		// Для кожної групи рахуємо баланс користувача
 		const groupsWithBalance = await Promise.all(
 			groupMembers.map(async member => {
 				const groupId = member.group.id
-
-				// Рахуємо баланс користувача по групі (аналогічно до getGroupInfo)
-				// Скільки користувачу винні (він кредитор)
 				const totalOwedToUser = await this.prismaService.debt.aggregate(
 					{
 						where: {
@@ -75,38 +75,30 @@ export class GroupMembersService {
 						_sum: { amount: true }
 					}
 				)
-
-				// Скільки користувач винен (він дебітор)
 				const totalOwedByUser = await this.prismaService.debt.aggregate(
 					{
 						where: {
 							debtorId: userId,
+							isActual: true,
 							expense: { groupId: groupId }
 						},
 						_sum: { amount: true }
 					}
 				)
-
-				// Баланс = що мені винні - що я винен
-				// Якщо > 0, то мені винні. Якщо < 0, то я винен
 				const userBalance =
 					(totalOwedToUser._sum.amount || 0) -
 					(totalOwedByUser._sum.amount || 0)
-
-				// Отримуємо учасників з повною інформацією
 				const members: UserSafe[] = member.group.members.map(m => ({
 					id: m.user.id,
 					displayName: m.user.displayName,
 					picture: m.user.picture
 				}))
-
-				members.slice(0, 8)
-
 				return {
 					id: member.group.id,
 					name: member.group.name,
 					avatarUrl: member.group.avatarUrl,
 					eventDate: member.group.eventDate,
+					isFinished: member.group.isFinished,
 					membersCount: member.group.members.length,
 					members,
 					userBalance
@@ -114,7 +106,10 @@ export class GroupMembersService {
 			})
 		)
 
-		return groupsWithBalance
+		const finished = groupsWithBalance.filter(g => g.isFinished)
+		const active = groupsWithBalance.filter(g => !g.isFinished)
+
+		return { finished, active }
 	}
 
 	public async getUserGroupRequests(userId: string): Promise<PartialGroup[]> {
@@ -127,7 +122,8 @@ export class GroupMembersService {
 							id: true,
 							name: true,
 							avatarUrl: true,
-							eventDate: true
+							eventDate: true,
+							isFinished: true
 						}
 					}
 				}
