@@ -29,12 +29,22 @@ export class GroupMembersService {
 		private readonly friendsService: FriendsService
 	) {}
 
-	public async getUserGroups(userId: string): Promise<{
-		finished: PartialGroupExtended[]
-		active: PartialGroupExtended[]
-	}> {
+	public async getUserGroups(
+		userId: string,
+		type: 'active' | 'finished',
+		limit: number = 10,
+		offset: number = 0
+	): Promise<PartialGroupExtended[]> {
+		const isFinished = type === 'finished'
+
 		const groupMembers = await this.prismaService.groupMember.findMany({
-			where: { userId: userId, status: GroupMemberStatus.ACCEPTED },
+			where: {
+				userId: userId,
+				status: GroupMemberStatus.ACCEPTED,
+				group: {
+					isFinished: isFinished
+				}
+			},
 			include: {
 				group: {
 					select: {
@@ -59,8 +69,12 @@ export class GroupMembersService {
 					}
 				}
 			},
-			orderBy: { group: { eventDate: 'desc' } }
+			orderBy: { group: { eventDate: 'desc' } },
+			skip: offset,
+			take: limit
 		})
+
+		// console.log(groupMembers)
 
 		const groupsWithBalance = await Promise.all(
 			groupMembers.map(async member => {
@@ -106,10 +120,7 @@ export class GroupMembersService {
 			})
 		)
 
-		const finished = groupsWithBalance.filter(g => g.isFinished)
-		const active = groupsWithBalance.filter(g => !g.isFinished)
-
-		return { finished, active }
+		return groupsWithBalance
 	}
 
 	public async getUserGroupRequests(userId: string): Promise<PartialGroup[]> {

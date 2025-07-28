@@ -6,7 +6,8 @@ import {
 	HttpCode,
 	HttpStatus,
 	Patch,
-	Post
+	Post,
+	Query
 } from '@nestjs/common'
 import { GroupMembersService } from './group-members.service'
 import { Authorization } from '@/auth/decorators/auth.decorator'
@@ -21,8 +22,20 @@ export class GroupMembersController {
 	@Authorization()
 	@HttpCode(HttpStatus.OK)
 	@Get()
-	public async GetUserGroups(@Authorized('id') userId: string) {
-		return this.groupMembersService.getUserGroups(userId)
+	public async GetUserGroups(
+		@Authorized('id') userId: string,
+		@Query('type') type: 'active' | 'finished',
+		@Query('limit') limit?: string,
+		@Query('offset') offset?: string
+	) {
+		const parsedLimit = limit ? parseInt(limit, 10) : 10
+		const parsedOffset = offset ? parseInt(offset, 10) : 0
+		return this.groupMembersService.getUserGroups(
+			userId,
+			type,
+			parsedLimit,
+			parsedOffset
+		)
 	}
 
 	@Authorization()
