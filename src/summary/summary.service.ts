@@ -128,4 +128,42 @@ export class SummaryService {
 
 		return result
 	}
+
+	public async settleUpBalances(
+		userId: string,
+		settlerUserId: string
+	): Promise<boolean> {
+		await this.prismaService.$transaction(async tx => {
+			// Знаходимо всі борги між цими двома користувачами
+			const debts = await tx.debt.findMany({
+				where: {
+					status: 'PENDING',
+					isActual: true,
+					OR: [
+						{ debtorId: userId, creditorId: settlerUserId },
+						{ debtorId: settlerUserId, creditorId: userId }
+					]
+				}
+			})
+
+			for (const debt of debts) {
+				if (debt.remaining > 0) {
+					await tx.debtPayment.create({
+						data: {
+							debtId: debt.id,
+							amount: debt.remaining
+						}
+					})
+				}
+				await tx.debt.update({
+					where: { id: debt.id },
+					data: {
+						status: 'SETTLED',
+						remaining: 0
+					}
+				})
+			}
+		})
+		return true
+	}
 }
