@@ -60,10 +60,12 @@ export class FriendsService {
 				where: {
 					OR: [
 						{
+							receiverId: senderId,
 							senderId: receiverId,
 							status: FriendStatus.PENDING
 						},
 						{
+							senderId: senderId,
 							receiverId: receiverId,
 							status: FriendStatus.PENDING
 						}
@@ -73,6 +75,29 @@ export class FriendsService {
 
 		if (isFrendRequestExists) {
 			throw new BadRequestException('Friend request already exists')
+		}
+
+		// Check if users are already friends
+		const isAlreadyFriends =
+			await this.prismaService.friendRequests.findFirst({
+				where: {
+					OR: [
+						{
+							senderId: senderId,
+							receiverId: receiverId,
+							status: FriendStatus.ACCEPTED
+						},
+						{
+							senderId: receiverId,
+							receiverId: senderId,
+							status: FriendStatus.ACCEPTED
+						}
+					]
+				}
+			})
+
+		if (isAlreadyFriends) {
+			throw new BadRequestException('Users are already friends')
 		}
 
 		await this.prismaService.friendRequests.create({

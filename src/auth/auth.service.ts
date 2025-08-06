@@ -94,27 +94,46 @@ export class AuthService {
 		req: Request,
 		provider: string,
 		code: string
-	) {
+	): Promise<{ user: User }> {
 		const providerInstance = this.providerService.findByService(provider)!
 
 		const profile = await providerInstance.findUserByCode(code)
 
-		const account = await this.prismaService.account.findFirst({
-			where: {
-				userEmail: profile.email,
-				provider: profile.provider
+		// Спочатку перевіряємо, чи існує користувач з таким email
+		const existingUser = await this.userService.findByEmail(profile.email)
+
+		// Якщо користувач існує, але не має акаунту для цього провайдера
+		if (existingUser) {
+			// Перевіряємо, чи вже є акаунт для цього провайдера
+			const account = await this.prismaService.account.findFirst({
+				where: {
+					userEmail: profile.email,
+					provider: profile.provider
+				}
+			})
+
+			// Якщо акаунту немає, створюємо його
+			if (!account) {
+				await this.prismaService.account.create({
+					data: {
+						userId: existingUser.id,
+						type: 'oauth',
+						userEmail: profile.email,
+						provider: profile.provider,
+						accessToken: profile.access_token,
+						refreshToken: profile.refresh_token,
+						expiresAt: profile.expires_at
+					}
+				})
 			}
-		})
 
-		let user = account?.userId
-			? await this.userService.findById(account.userId)
-			: null
-
-		if (user) {
-			return this.saveSession(req, user)
+			return this.saveSession(req, existingUser) as Promise<{
+				user: User
+			}>
 		}
 
-		user = await this.userService.create(
+		// Якщо користувача не існує, створюємо нового
+		const user = await this.userService.create(
 			profile.email,
 			'',
 			profile.name,
@@ -124,21 +143,22 @@ export class AuthService {
 			true
 		)
 
-		if (!account) {
-			await this.prismaService.account.create({
-				data: {
-					userId: user.id,
-					type: 'oauth',
-					userEmail: profile.email,
-					provider: profile.provider,
-					accessToken: profile.access_token,
-					refreshToken: profile.refresh_token,
-					expiresAt: profile.expires_at
-				}
-			})
-		}
+		// Створюємо акаунт для нового користувача
+		await this.prismaService.account.create({
+			data: {
+				userId: user.id,
+				type: 'oauth',
+				userEmail: profile.email,
+				provider: profile.provider,
+				accessToken: profile.access_token,
+				refreshToken: profile.refresh_token,
+				expiresAt: profile.expires_at
+			}
+		})
 
-		return this.saveSession(req, user)
+		return this.saveSession(req, user) as Promise<{
+			user: User
+		}>
 	}
 
 	// public async logout(req: Request, res: Response): Promise<void> {
