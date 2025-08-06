@@ -151,7 +151,8 @@ export class SummaryService {
 					await tx.debtPayment.create({
 						data: {
 							debtId: debt.id,
-							amount: debt.remaining
+							amount: debt.remaining,
+							creatorId: userId
 						}
 					})
 				}

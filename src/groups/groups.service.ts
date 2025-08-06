@@ -350,7 +350,15 @@ export class GroupsService {
 					select: {
 						amount: true,
 						createdAt: true,
-						isActual: true
+						isActual: true,
+						creatorId: true,
+						creator: {
+							select: {
+								id: true,
+								displayName: true,
+								picture: true
+							}
+						}
 					}
 				}
 			}
@@ -360,6 +368,11 @@ export class GroupsService {
 			from: { id: string; displayName: string; picture: string | null }
 			to: { id: string; displayName: string; picture: string | null }
 			amount: number
+			creators: Array<{
+				id: string
+				displayName: string
+				picture: string | null
+			}>
 		}
 		const paymentsMap = new Map<string, PaymentBetweenMembers>()
 		const overpaysMap = new Map<string, PaymentBetweenMembers>()
@@ -367,35 +380,97 @@ export class GroupsService {
 		for (const debt of allDebts) {
 			// ВСІ платежі (isActual true + false)
 			const totalPaid = debt.payments.reduce(
-				(sum, p) => sum + p.amount,
+				(sum, p) => sum + (p.amount || 0),
 				0
 			)
 			if (totalPaid > 0) {
 				const key = debt.debtorId + '->' + debt.creditorId
 				if (paymentsMap.has(key)) {
-					paymentsMap.get(key)!.amount += totalPaid
+					const existingPayment = paymentsMap.get(key)!
+					existingPayment.amount += totalPaid
+					// Додаємо унікальних креаторів
+					for (const payment of debt.payments) {
+						if (payment.creator) {
+							const creatorExists = existingPayment.creators.some(
+								creator => creator.id === payment.creator.id
+							)
+							if (!creatorExists) {
+								existingPayment.creators.push(payment.creator)
+							}
+						}
+					}
 				} else {
+					// Збираємо унікальних креаторів
+					const uniqueCreators: Array<{
+						id: string
+						displayName: string
+						picture: string | null
+					}> = []
+					for (const payment of debt.payments) {
+						if (payment.creator) {
+							const creatorExists = uniqueCreators.some(
+								creator => creator.id === payment.creator.id
+							)
+							if (!creatorExists) {
+								uniqueCreators.push(payment.creator)
+							}
+						}
+					}
+
 					paymentsMap.set(key, {
 						from: debt.debtor,
 						to: debt.creditor,
-						amount: totalPaid
+						amount: totalPaid,
+						creators: uniqueCreators
 					})
 				}
 			}
 
 			// Overpays (isActual: false)
-			const overpaid = debt.payments
-				.filter(p => !p.isActual)
-				.reduce((sum, p) => sum + p.amount, 0)
+			const overpaidPayments = debt.payments.filter(p => !p.isActual)
+			const overpaid = overpaidPayments.reduce(
+				(sum, p) => sum + (p.amount || 0),
+				0
+			)
 			if (overpaid > 0) {
 				const key = debt.debtorId + '->' + debt.creditorId
 				if (overpaysMap.has(key)) {
-					overpaysMap.get(key)!.amount += overpaid
+					const existingOverpay = overpaysMap.get(key)!
+					existingOverpay.amount += overpaid
+					// Додаємо унікальних креаторів
+					for (const payment of overpaidPayments) {
+						if (payment.creator) {
+							const creatorExists = existingOverpay.creators.some(
+								creator => creator.id === payment.creator.id
+							)
+							if (!creatorExists) {
+								existingOverpay.creators.push(payment.creator)
+							}
+						}
+					}
 				} else {
+					// Збираємо унікальних креаторів
+					const uniqueCreators: Array<{
+						id: string
+						displayName: string
+						picture: string | null
+					}> = []
+					for (const payment of overpaidPayments) {
+						if (payment.creator) {
+							const creatorExists = uniqueCreators.some(
+								creator => creator.id === payment.creator.id
+							)
+							if (!creatorExists) {
+								uniqueCreators.push(payment.creator)
+							}
+						}
+					}
+
 					overpaysMap.set(key, {
 						from: debt.debtor,
 						to: debt.creditor,
-						amount: overpaid
+						amount: overpaid,
+						creators: uniqueCreators
 					})
 				}
 			}

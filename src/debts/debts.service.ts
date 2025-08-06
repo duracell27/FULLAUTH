@@ -59,7 +59,11 @@ export class DebtsService {
 
 				// Створити платіж
 				await tx.debtPayment.create({
-					data: { debtId: debt.id, amount: payAmount }
+					data: {
+						debtId: debt.id,
+						amount: payAmount,
+						creatorId: userId
+					}
 				})
 
 				// Оновити борг
