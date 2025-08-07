@@ -4,7 +4,10 @@ import {
 	NotFoundException,
 	BadRequestException
 } from '@nestjs/common'
-import { GroupDebtPaymentDto } from './dto/group-debt-payment.dto'
+import {
+	GroupDebtPaymentDto,
+	DeleteGroupDebtPaymentDto
+} from './dto/group-debt-payment.dto'
 import { DebtStatus } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
 
@@ -124,6 +127,89 @@ export class DebtsService {
 						]
 					},
 					data: { remaining: 0, status: DebtStatus.SETTLED }
+				})
+			}
+		})
+
+		return true
+	}
+
+	async deleteDebtPay(dto: DeleteGroupDebtPaymentDto, userId: string) {
+		// Валідація DTO
+		if (!dto.groupId || !dto.creditorId || !dto.debtorId) {
+			throw new BadRequestException(
+				'Required fields for deleting debt payment are missing'
+			)
+		}
+
+		const isUserGroupMember =
+			await this.groupMembersService.isUserGroupMember(
+				userId,
+				dto.groupId
+			)
+
+		if (!isUserGroupMember)
+			throw new BadRequestException('You are not a member of this group')
+
+		// Знаходимо всі борги між цими користувачами в групі
+		const debts = await this.prismaService.debt.findMany({
+			where: {
+				OR: [
+					{
+						debtorId: dto.debtorId,
+						creditorId: dto.creditorId,
+						expense: { groupId: dto.groupId }
+					},
+					{
+						debtorId: dto.creditorId,
+						creditorId: dto.debtorId,
+						expense: { groupId: dto.groupId }
+					}
+				]
+			},
+			include: {
+				payments: {
+					where: { isActual: true },
+					orderBy: { createdAt: 'desc' }
+				}
+			}
+		})
+
+		if (!debts.length)
+			throw new NotFoundException(
+				'No debts found between these users in this group'
+			)
+
+		// Перевіряємо чи є платежі для видалення
+		const hasPayments = debts.some(debt => debt.payments.length > 0)
+		if (!hasPayments)
+			throw new NotFoundException('No payments found to delete')
+
+		await this.prismaService.$transaction(async tx => {
+			for (const debt of debts) {
+				if (debt.payments.length === 0) continue
+
+				// Видаляємо всі платежі по цьому боргу
+				await tx.debtPayment.deleteMany({
+					where: { debtId: debt.id }
+				})
+
+				// Відновлюємо початковий стан боргу
+				const totalPaid = debt.payments.reduce(
+					(sum, payment) => sum + payment.amount,
+					0
+				)
+				const newRemaining = debt.remaining + totalPaid
+
+				await tx.debt.update({
+					where: { id: debt.id },
+					data: {
+						remaining: newRemaining,
+						status:
+							newRemaining <= 0
+								? DebtStatus.SETTLED
+								: DebtStatus.PENDING
+					}
 				})
 			}
 		})
