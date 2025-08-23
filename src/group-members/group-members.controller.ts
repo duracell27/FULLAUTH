@@ -40,6 +40,25 @@ export class GroupMembersController {
 
 	@Authorization()
 	@HttpCode(HttpStatus.OK)
+	@Get('personal')
+	public async GetUserPersonalGroups(
+		@Authorized('id') userId: string,
+		@Query('type') type: 'active' | 'finished',
+		@Query('limit') limit?: string,
+		@Query('offset') offset?: string
+	) {
+		const parsedLimit = limit ? parseInt(limit, 10) : 10
+		const parsedOffset = offset ? parseInt(offset, 10) : 0
+		return this.groupMembersService.getUserPersonalGroups(
+			userId,
+			type,
+			parsedLimit,
+			parsedOffset
+		)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
 	@Get('requests')
 	public async GetUserGroupsRequests(@Authorized('id') userId: string) {
 		return this.groupMembersService.getUserGroupRequests(userId)

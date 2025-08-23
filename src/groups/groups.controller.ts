@@ -13,6 +13,7 @@ import { GroupsService } from './groups.service'
 import { Authorization } from '@/auth/decorators/auth.decorator'
 import { Authorized } from '@/auth/decorators/authorized.decorator'
 import { CreateGroupDto } from './dto/CreateGroupDto'
+import { CreatePersonalGroupDto } from './dto/CreatePersonalGroupDto'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
 
 @Controller('groups')
@@ -37,6 +38,16 @@ export class GroupsController {
 		@Body() dto: CreateGroupDto
 	) {
 		return this.groupsService.createGroup(userId, dto)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Post('create-personal')
+	public async createPersonalGroup(
+		@Authorized('id') userId: string,
+		@Body() dto: CreatePersonalGroupDto
+	) {
+		return this.groupsService.createPersonalGroup(userId, dto)
 	}
 
 	@Authorization()

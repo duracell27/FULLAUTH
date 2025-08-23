@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { CreateGroupDto } from './dto/CreateGroupDto'
+import { CreatePersonalGroupDto } from './dto/CreatePersonalGroupDto'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
 import { GroupMemberStatus, GroupRole } from '@prisma/client'
@@ -10,6 +11,7 @@ type GroupWithMembers = {
 	avatarUrl: string | null
 	isLocked: boolean
 	isFinished: boolean
+	isPersonal: boolean
 	totalExpenses: number
 	userTotalBalance: number
 	eventDate: Date
@@ -63,6 +65,89 @@ export class GroupsService {
 				role: GroupRole.ADMIN,
 				status: GroupMemberStatus.ACCEPTED
 			}
+		})
+
+		return group
+	}
+
+	public async createPersonalGroup(
+		userId: string,
+		dto: CreatePersonalGroupDto
+	) {
+		// Перевіряємо, чи існує користувач, якого запрошуємо
+		const invitedUser = await this.prismaService.user.findUnique({
+			where: { id: dto.userId }
+		})
+
+		if (!invitedUser) {
+			throw new BadRequestException('User not found')
+		}
+
+		// Перевіряємо, чи не є це той самий користувач
+		if (userId === dto.userId) {
+			throw new BadRequestException(
+				'Cannot create personal group with yourself'
+			)
+		}
+
+		// Перевіряємо, чи вже не існує персональна група між цими користувачами
+		const existingPersonalGroup =
+			await this.prismaService.groupEntity.findFirst({
+				where: {
+					isPersonal: true,
+					members: {
+						every: {
+							userId: {
+								in: [userId, dto.userId]
+							}
+						}
+					}
+				},
+				include: {
+					members: {
+						select: {
+							userId: true
+						}
+					}
+				}
+			})
+
+		if (existingPersonalGroup) {
+			// Перевіряємо, чи група дійсно містить обох користувачів
+			const memberIds = existingPersonalGroup.members.map(m => m.userId)
+			if (memberIds.includes(userId) && memberIds.includes(dto.userId)) {
+				throw new BadRequestException(
+					'Personal group already exists between these users'
+				)
+			}
+		}
+
+		// Створюємо персональну групу
+		const group = await this.prismaService.groupEntity.create({
+			data: {
+				name: `Personal`,
+				isPersonal: true,
+				avatarUrl: '',
+				eventDate: new Date()
+			}
+		})
+
+		// Додаємо обох користувачів до групи
+		await this.prismaService.groupMember.createMany({
+			data: [
+				{
+					userId: userId,
+					groupId: group.id,
+					role: GroupRole.ADMIN,
+					status: GroupMemberStatus.ACCEPTED
+				},
+				{
+					userId: dto.userId,
+					groupId: group.id,
+					role: GroupRole.ADMIN,
+					status: GroupMemberStatus.ACCEPTED
+				}
+			]
 		})
 
 		return group
@@ -184,6 +269,7 @@ export class GroupsService {
 				eventDate: true,
 				isLocked: true,
 				isFinished: true,
+				isPersonal: true,
 				createdAt: true,
 				members: {
 					where: {

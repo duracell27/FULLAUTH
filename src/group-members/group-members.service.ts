@@ -8,7 +8,7 @@ import { GroupEntity, GroupMemberStatus, GroupRole, User } from '@prisma/client'
 
 type PartialGroup = Pick<
 	GroupEntity,
-	'id' | 'name' | 'avatarUrl' | 'eventDate' | 'isFinished'
+	'id' | 'name' | 'avatarUrl' | 'eventDate' | 'isFinished' | 'isPersonal'
 >
 
 type UserSafe = Pick<User, 'id' | 'displayName' | 'picture'>
@@ -42,7 +42,8 @@ export class GroupMembersService {
 				userId: userId,
 				status: GroupMemberStatus.ACCEPTED,
 				group: {
-					isFinished: isFinished
+					isFinished: isFinished,
+					isPersonal: false // Тільки звичайні групи
 				}
 			},
 			include: {
@@ -53,6 +54,7 @@ export class GroupMembersService {
 						avatarUrl: true,
 						eventDate: true,
 						isFinished: true,
+						isPersonal: true,
 						members: {
 							where: { status: GroupMemberStatus.ACCEPTED },
 							select: {
@@ -113,6 +115,102 @@ export class GroupMembersService {
 					avatarUrl: member.group.avatarUrl,
 					eventDate: member.group.eventDate,
 					isFinished: member.group.isFinished,
+					isPersonal: member.group.isPersonal,
+					membersCount: member.group.members.length,
+					members,
+					userBalance
+				}
+			})
+		)
+
+		return groupsWithBalance
+	}
+
+	public async getUserPersonalGroups(
+		userId: string,
+		type: 'active' | 'finished',
+		limit: number = 10,
+		offset: number = 0
+	): Promise<PartialGroupExtended[]> {
+		const isFinished = type === 'finished'
+
+		const groupMembers = await this.prismaService.groupMember.findMany({
+			where: {
+				userId: userId,
+				status: GroupMemberStatus.ACCEPTED,
+				group: {
+					isFinished: isFinished,
+					isPersonal: true // Тільки персональні групи
+				}
+			},
+			include: {
+				group: {
+					select: {
+						id: true,
+						name: true,
+						avatarUrl: true,
+						eventDate: true,
+						isFinished: true,
+						isPersonal: true,
+						members: {
+							where: { status: GroupMemberStatus.ACCEPTED },
+							select: {
+								userId: true,
+								user: {
+									select: {
+										id: true,
+										displayName: true,
+										picture: true
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			orderBy: { group: { eventDate: 'desc' } },
+			skip: offset,
+			take: limit
+		})
+
+		const groupsWithBalance = await Promise.all(
+			groupMembers.map(async member => {
+				const groupId = member.group.id
+				const totalOwedToUser = await this.prismaService.debt.aggregate(
+					{
+						where: {
+							creditorId: userId,
+							isActual: true,
+							expense: { groupId: groupId }
+						},
+						_sum: { amount: true }
+					}
+				)
+				const totalOwedByUser = await this.prismaService.debt.aggregate(
+					{
+						where: {
+							debtorId: userId,
+							isActual: true,
+							expense: { groupId: groupId }
+						},
+						_sum: { amount: true }
+					}
+				)
+				const userBalance =
+					(totalOwedToUser._sum.amount || 0) -
+					(totalOwedByUser._sum.amount || 0)
+				const members: UserSafe[] = member.group.members.map(m => ({
+					id: m.user.id,
+					displayName: m.user.displayName,
+					picture: m.user.picture
+				}))
+				return {
+					id: member.group.id,
+					name: member.group.name,
+					avatarUrl: member.group.avatarUrl,
+					eventDate: member.group.eventDate,
+					isFinished: member.group.isFinished,
+					isPersonal: member.group.isPersonal,
 					membersCount: member.group.members.length,
 					members,
 					userBalance
@@ -126,7 +224,13 @@ export class GroupMembersService {
 	public async getUserGroupRequests(userId: string): Promise<PartialGroup[]> {
 		const groupMembers: { group: PartialGroup }[] =
 			await this.prismaService.groupMember.findMany({
-				where: { userId: userId, status: GroupMemberStatus.PENDING },
+				where: {
+					userId: userId,
+					status: GroupMemberStatus.PENDING,
+					group: {
+						isPersonal: false // Тільки звичайні групи
+					}
+				},
 				include: {
 					group: {
 						select: {
@@ -134,7 +238,8 @@ export class GroupMembersService {
 							name: true,
 							avatarUrl: true,
 							eventDate: true,
-							isFinished: true
+							isFinished: true,
+							isPersonal: true
 						}
 					}
 				}
@@ -178,6 +283,18 @@ export class GroupMembersService {
 		recieverUserId: string,
 		senderUserId: string
 	) {
+		// Перевіряємо, чи це персональна група
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: groupId },
+			select: { isPersonal: true }
+		})
+
+		if (group?.isPersonal) {
+			throw new BadRequestException(
+				'Cannot add users to personal groups through this endpoint. Personal groups are created automatically with exactly 2 members.'
+			)
+		}
+
 		const isRequestExist = await this.prismaService.groupMember.findFirst({
 			where: {
 				userId: recieverUserId,
@@ -245,7 +362,7 @@ export class GroupMembersService {
 			)
 		} else {
 			await this.mailService.sendGroupInvitationWithConfirmEmail(
-				recieverUserId,
+				user.email,
 				groupName,
 				user.displayName
 			)
@@ -259,6 +376,18 @@ export class GroupMembersService {
 		recieverUserId: string,
 		senderUserId: string
 	) {
+		// Перевіряємо, чи це персональна група
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: groupId },
+			select: { isPersonal: true }
+		})
+
+		if (group?.isPersonal) {
+			throw new BadRequestException(
+				'Cannot remove users from personal groups. Personal groups are designed to have exactly 2 members.'
+			)
+		}
+
 		const isRequestExist = await this.prismaService.groupMember.findFirst({
 			where: {
 				userId: recieverUserId,
