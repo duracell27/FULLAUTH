@@ -9,6 +9,7 @@ import { GroupMember, Prisma, SplitType } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
 import { InputJsonValue } from '@prisma/client/runtime/library'
 import { round2 } from '@/libs/common/utils/round2'
+import { NotificationsService } from '@/notifications/notifications.service'
 
 // Визначаємо тип, який буде повертатися
 // Він має ТОЧНО відповідати запиту в `findUnique` (включаючи `include`)
@@ -23,7 +24,8 @@ type ExpenseWithDetails = Prisma.ExpenseGetPayload<{
 export class ExpensesService {
 	public constructor(
 		private readonly prismaService: PrismaService,
-		private readonly groupMembersService: GroupMembersService
+		private readonly groupMembersService: GroupMembersService,
+		private readonly notificationsService: NotificationsService
 	) {}
 
 	async addExpense(
@@ -160,13 +162,31 @@ export class ExpensesService {
 			}
 
 			// Повертаємо створену витрату з усіма зв'язками
-			return tx.expense.findUnique({
+			const result = await tx.expense.findUnique({
 				where: { id: expense.id },
 				include: {
 					payers: true,
 					splits: true
 				}
 			})
+
+			// Створюємо нотифікації для всіх учасників групи
+			await this.createExpenseNotifications(
+				expense.id,
+				dto.groupId,
+				dto.description,
+				dto.amount
+			)
+
+			// Створюємо нотифікації для всіх нових боргів на основі debtsToCreate
+			await this.createDebtNotificationsFromData(
+				expense.id,
+				dto.groupId,
+				dto.description,
+				debtsToCreate
+			)
+
+			return result
 		})
 	}
 
@@ -640,6 +660,161 @@ export class ExpensesService {
 			}
 		})
 
+		// Створюємо нотифікації для нових боргів
+		await this.createDebtNotifications(
+			expenseId,
+			dto.groupId,
+			dto.description
+		)
+
 		return true
+	}
+
+	private async createExpenseNotifications(
+		expenseId: string,
+		groupId: string,
+		description: string,
+		amount: number
+	): Promise<void> {
+		try {
+			// Отримуємо назву групи
+			const group = await this.prismaService.groupEntity.findUnique({
+				where: { id: groupId },
+				select: { name: true }
+			})
+
+			if (!group) return
+
+			// Отримуємо всіх учасників групи
+			const members = await this.prismaService.groupMember.findMany({
+				where: {
+					groupId,
+					status: 'ACCEPTED'
+				},
+				select: { userId: true }
+			})
+
+			// Створюємо нотифікації для всіх учасників
+			for (const member of members) {
+				await this.notificationsService.createExpenseAddedNotification(
+					member.userId,
+					expenseId,
+					description,
+					group.name,
+					amount
+				)
+			}
+		} catch (error) {
+			// Логуємо помилку, але не зупиняємо основний процес
+			console.error('Error creating expense notifications:', error)
+		}
+	}
+
+	private async createDebtNotificationsFromData(
+		expenseId: string,
+		groupId: string,
+		description: string,
+		debtsData: Array<{
+			debtorId: string
+			creditorId: string
+			amount: number
+		}>
+	): Promise<void> {
+		try {
+			// Створюємо нотифікації для кожного боргу на основі даних
+			for (const debtData of debtsData) {
+				// Нотифікація для боржника
+				await this.notificationsService.create({
+					userId: debtData.debtorId,
+					type: 'DEBT_CREATED',
+					title: 'New debt',
+					message: `You owe ${debtData.amount} for the expense "${description}"`,
+					relatedDebtId: expenseId, // Використовуємо expenseId як debtId, оскільки борг ще не має ID
+					relatedExpenseId: expenseId,
+					metadata: {
+						expenseDescription: description,
+						amount: debtData.amount,
+						isDebtor: true
+					}
+				})
+
+				// Нотифікація для кредитора
+				await this.notificationsService.create({
+					userId: debtData.creditorId,
+					type: 'DEBT_CREATED',
+					title: 'New credit',
+					message: `You get back ${debtData.amount} for the expense "${description}"`,
+					relatedDebtId: expenseId, // Використовуємо expenseId як debtId
+					relatedExpenseId: expenseId,
+					metadata: {
+						expenseDescription: description,
+						amount: debtData.amount,
+						isDebtor: false
+					}
+				})
+			}
+		} catch (error) {
+			// Логуємо помилку, але не зупиняємо основний процес
+			console.error('Error creating debt notifications from data:', error)
+		}
+	}
+
+	private async createDebtNotifications(
+		expenseId: string,
+		groupId: string,
+		description: string
+	): Promise<void> {
+		try {
+			// Отримуємо всі борги для цієї витрати
+			const debts = await this.prismaService.debt.findMany({
+				where: {
+					expenseId,
+					isActual: true
+				},
+				select: {
+					id: true,
+					debtorId: true,
+					creditorId: true,
+					amount: true,
+					expenseId: true
+				}
+			})
+
+			// Створюємо нотифікації для кожного боргу
+			for (const debt of debts) {
+				// Нотифікація для боржника
+				await this.notificationsService.create({
+					userId: debt.debtorId,
+					type: 'DEBT_CREATED',
+					title: 'New debt',
+					message: `You owe ${debt.amount} for the expense "${description}"`,
+					relatedDebtId: debt.id,
+					relatedExpenseId: debt.expenseId,
+					metadata: {
+						expenseDescription: description,
+						amount: debt.amount,
+						isDebtor: true
+					}
+				})
+
+				// Нотифікація для кредитора
+				await this.notificationsService.create({
+					userId: debt.creditorId,
+					type: 'DEBT_CREATED',
+					title: 'New credit',
+					message: `You get back ${debt.amount} for the expense "${description}"`,
+					relatedDebtId: debt.id,
+					relatedExpenseId: debt.expenseId,
+					metadata: {
+						expenseDescription: description,
+						amount: debt.amount,
+						isDebtor: false
+					}
+				})
+			}
+		} catch (error) {
+			// Логуємо помилку, але не зупиняємо основний процес
+			console.error('Error creating debt notifications:', error)
+		}
 	}
 }

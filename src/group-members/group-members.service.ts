@@ -5,6 +5,7 @@ import { PrismaService } from '@/prisma/prisma.service'
 import { UserService } from '@/user/user.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { GroupEntity, GroupMemberStatus, GroupRole, User } from '@prisma/client'
+import { NotificationsService } from '@/notifications/notifications.service'
 
 type PartialGroup = Pick<
 	GroupEntity,
@@ -26,7 +27,8 @@ export class GroupMembersService {
 		private readonly userService: UserService,
 		private readonly mailService: MailService,
 		private readonly groupService: GroupsService,
-		private readonly friendsService: FriendsService
+		private readonly friendsService: FriendsService,
+		private readonly notificationsService: NotificationsService
 	) {}
 
 	public async getUserGroups(
@@ -261,6 +263,38 @@ export class GroupMembersService {
 				status: GroupMemberStatus.ACCEPTED
 			}
 		})
+
+		// Отримуємо назву групи та інформацію про користувача
+		const groupName = await this.groupService.getGroupName(groupId)
+		const user = await this.userService.findById(userId)
+
+		// Знаходимо адміністраторів групи для сповіщення
+		const groupAdmins = await this.prismaService.groupMember.findMany({
+			where: {
+				groupId,
+				role: GroupRole.ADMIN,
+				status: GroupMemberStatus.ACCEPTED
+			},
+			select: { userId: true }
+		})
+
+		// Створюємо нотифікації для адміністраторів групи
+		if (user && groupName) {
+			for (const admin of groupAdmins) {
+				if (admin.userId !== userId) {
+					// Не сповіщаємо самого користувача
+					await this.notificationsService.create({
+						userId: admin.userId,
+						type: 'GROUP_INVITATION',
+						title: 'Group invitation accepted',
+						message: `${user.displayName} accepted the invitation to join the group "${groupName}"`,
+						relatedGroupId: groupId,
+						relatedUserId: userId,
+						metadata: { groupName, userName: user.displayName }
+					})
+				}
+			}
+		}
 	}
 
 	public async rejectAddGroupRequest(groupId: string, userId: string) {
@@ -276,6 +310,38 @@ export class GroupMembersService {
 				status: GroupMemberStatus.REJECTED
 			}
 		})
+
+		// Отримуємо назву групи та інформацію про користувача
+		const groupName = await this.groupService.getGroupName(groupId)
+		const user = await this.userService.findById(userId)
+
+		// Знаходимо адміністраторів групи для сповіщення
+		const groupAdmins = await this.prismaService.groupMember.findMany({
+			where: {
+				groupId,
+				role: GroupRole.ADMIN,
+				status: GroupMemberStatus.ACCEPTED
+			},
+			select: { userId: true }
+		})
+
+		// Створюємо нотифікації для адміністраторів групи
+		if (user && groupName) {
+			for (const admin of groupAdmins) {
+				if (admin.userId !== userId) {
+					// Не сповіщаємо самого користувача
+					await this.notificationsService.create({
+						userId: admin.userId,
+						type: 'GROUP_INVITATION',
+						title: 'Group invitation rejected',
+						message: `${user.displayName} rejected the invitation to join the group "${groupName}"`,
+						relatedGroupId: groupId,
+						relatedUserId: userId,
+						metadata: { groupName, userName: user.displayName }
+					})
+				}
+			}
+		}
 	}
 
 	public async addUserToGroup(
@@ -354,6 +420,19 @@ export class GroupMembersService {
 			}
 		})
 
+		// Отримуємо ім'я користувача, який додає
+		const senderUser = await this.userService.findById(senderUserId)
+
+		// Створюємо нотифікацію для користувача, якого додають
+		if (senderUser) {
+			await this.notificationsService.createGroupInvitationNotification(
+				recieverUserId,
+				groupId,
+				groupName,
+				senderUser.displayName
+			)
+		}
+
 		if (isUserFriends) {
 			await this.mailService.sendGroupInvitationEmail(
 				user.email,
@@ -405,6 +484,8 @@ export class GroupMembersService {
 			throw new BadRequestException('Group not found')
 		}
 
+		const groupName = await this.groupService.getGroupName(groupId)
+
 		const isUserExist = await this.userService.isUserExist(recieverUserId)
 
 		if (!isUserExist) {
@@ -442,6 +523,19 @@ export class GroupMembersService {
 
 		if (!isGroupAdmin) {
 			throw new BadRequestException('You are not admin of this group')
+		}
+
+		// Отримуємо ім'я користувача, який видаляє
+		const removerUser = await this.userService.findById(senderUserId)
+
+		// Створюємо нотифікацію для користувача, якого видаляють
+		if (removerUser) {
+			await this.notificationsService.createUserRemovedFromGroupNotification(
+				recieverUserId,
+				groupId,
+				groupName,
+				removerUser.displayName
+			)
 		}
 
 		await this.prismaService.groupMember.delete({

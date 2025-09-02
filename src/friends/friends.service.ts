@@ -1,10 +1,14 @@
 import { PrismaService } from '@/prisma/prisma.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { FriendStatus } from '@prisma/client'
+import { NotificationsService } from '../notifications/notifications.service'
 
 @Injectable()
 export class FriendsService {
-	public constructor(private readonly prismaService: PrismaService) {}
+	public constructor(
+		private readonly prismaService: PrismaService,
+		private readonly notificationsService: NotificationsService
+	) {}
 	public async getUserFriends(userId: string) {
 		const friendsDocs = await this.prismaService.friendRequests.findMany({
 			where: {
@@ -100,13 +104,29 @@ export class FriendsService {
 			throw new BadRequestException('Users are already friends')
 		}
 
-		await this.prismaService.friendRequests.create({
+		const friendRequest = await this.prismaService.friendRequests.create({
 			data: {
 				senderId,
 				receiverId,
 				status: 'PENDING'
 			}
 		})
+
+		// Створюємо нотифікацію для отримувача
+		const sender = await this.prismaService.user.findUnique({
+			where: { id: senderId },
+			select: { displayName: true }
+		})
+
+		if (sender) {
+			await this.notificationsService.createFriendRequestNotification(
+				receiverId,
+				senderId,
+				sender.displayName
+			)
+		}
+
+		return friendRequest
 	}
 
 	public async acceptFriendRequest(
@@ -172,11 +192,11 @@ export class FriendsService {
 					OR: [
 						{
 							senderId: senderId,
-							status: FriendStatus.ACCEPTED
+							status: FriendStatus.PENDING
 						},
 						{
 							receiverId: senderId,
-							status: FriendStatus.ACCEPTED
+							status: FriendStatus.PENDING
 						}
 					]
 				}

@@ -4,6 +4,7 @@ import { CreatePersonalGroupDto } from './dto/CreatePersonalGroupDto'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
 import { GroupMemberStatus, GroupRole } from '@prisma/client'
+import { NotificationsService } from '../notifications/notifications.service'
 
 type GroupWithMembers = {
 	id: string
@@ -47,7 +48,10 @@ type GroupWithMembers = {
 
 @Injectable()
 export class GroupsService {
-	public constructor(private readonly prismaService: PrismaService) {}
+	public constructor(
+		private readonly prismaService: PrismaService,
+		private readonly notificationsService: NotificationsService
+	) {}
 
 	public async createGroup(userId: string, dto: CreateGroupDto) {
 		const group = await this.prismaService.groupEntity.create({
@@ -149,6 +153,21 @@ export class GroupsService {
 				}
 			]
 		})
+
+		// Створюємо нотифікацію для запрошеного користувача
+		const currentUser = await this.prismaService.user.findUnique({
+			where: { id: userId },
+			select: { displayName: true }
+		})
+
+		if (currentUser) {
+			await this.notificationsService.createGroupInvitationNotification(
+				dto.userId,
+				group.id,
+				group.name,
+				currentUser.displayName
+			)
+		}
 
 		return group
 	}

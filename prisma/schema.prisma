@@ -28,6 +28,7 @@ model User {
   receivedFriendRequests FriendRequests[] @relation("ReceivedFriendRequests")
   sentFriendRequests     FriendRequests[] @relation("SentFriendRequests")
   groupMemberships       GroupMember[]
+  notifications          Notification[]
 
   @@map("users")
 }
@@ -162,12 +163,37 @@ model DebtPayment {
   amount    Float
   createdAt DateTime @default(now()) @map("created_at")
   isActual  Boolean  @default(true) @map("is_actual")
-  creatorId String    @map("creator_id")
+  creatorId String   @map("creator_id")
   creator   User     @relation("DebtPayer", fields: [creatorId], references: [id], onDelete: Cascade)
   debt      Debt     @relation("DebtPayments", fields: [debtId], references: [id], onDelete: Cascade)
 
   @@index([debtId])
   @@map("debt_payments")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  // Деталі для різних типів нотифікацій
+  relatedUserId    String? @map("related_user_id") // ID користувача (для friend request)
+  relatedGroupId   String? @map("related_group_id") // ID групи (для group invitation)
+  relatedExpenseId String? @map("related_expense_id") // ID витрати (для expense notification)
+  relatedDebtId    String? @map("related_debt_id") // ID боргу (для debt notification)
+
+  // Додаткові дані
+  metadata Json? // Для зберігання додаткової інформації
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
 }
 
 enum UserRole {
@@ -214,4 +240,13 @@ enum SplitType {
   PERCENTAGE
   SHARES
   EXTRA
+}
+
+enum NotificationType {
+  FRIEND_REQUEST //yes
+  GROUP_INVITATION //yes
+  EXPENSE_ADDED //yes
+  DEBT_CREATED //yes
+  DEBT_SETTLED //yes
+  USER_REMOVED_FROM_GROUP //yes
 }

@@ -6,8 +6,10 @@ import { UserService } from '@/user/user.service'
 import { GroupsService } from '@/groups/groups.service'
 import { FriendsService } from '@/friends/friends.service'
 import { MailService } from '@/libs/mail/mail.service'
+import { NotificationsModule } from '../notifications/notifications.module'
 
 @Module({
+	imports: [NotificationsModule],
 	controllers: [GroupMembersController],
 	providers: [
 		GroupMembersService,

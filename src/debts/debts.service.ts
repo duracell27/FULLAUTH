@@ -10,12 +10,14 @@ import {
 } from './dto/group-debt-payment.dto'
 import { DebtStatus } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
+import { NotificationsService } from '@/notifications/notifications.service'
 
 @Injectable()
 export class DebtsService {
 	public constructor(
 		private readonly prismaService: PrismaService,
-		private readonly groupMembersService: GroupMembersService
+		private readonly groupMembersService: GroupMembersService,
+		private readonly notificationsService: NotificationsService
 	) {}
 
 	async addDebtPay(dto: GroupDebtPaymentDto, userId: string) {
@@ -77,6 +79,47 @@ export class DebtsService {
 					data: { remaining: newRemaining, status }
 				})
 
+				// Створюємо нотифікацію, якщо борг повністю вирішений
+				if (status === 'SETTLED') {
+					// Отримуємо деталі витрати для нотифікації
+					const expense = await tx.expense.findFirst({
+						where: { id: debt.expenseId },
+						select: { description: true }
+					})
+
+					if (expense) {
+						// Нотифікація для боржника
+						await this.notificationsService.create({
+							userId: debt.debtorId,
+							type: 'DEBT_SETTLED',
+							title: 'Debt settled',
+							message: `Your debt for "${expense.description}" has been settled`,
+							relatedDebtId: debt.id,
+							relatedGroupId: dto.groupId,
+							metadata: {
+								expenseDescription: expense.description,
+								amount: debt.amount,
+								isDebtor: true
+							}
+						})
+
+						// Нотифікація для кредитора
+						await this.notificationsService.create({
+							userId: debt.creditorId,
+							type: 'DEBT_SETTLED',
+							title: 'Debt settled',
+							message: `Debt for "${expense.description}" has been settled`,
+							relatedDebtId: debt.id,
+							relatedGroupId: dto.groupId,
+							metadata: {
+								expenseDescription: expense.description,
+								amount: debt.amount,
+								isDebtor: false
+							}
+						})
+					}
+				}
+
 				localAmountLeft -= payAmount
 			}
 
@@ -109,6 +152,32 @@ export class DebtsService {
 			)
 
 			if (Math.abs(directSum - reverseSum) < 0.01 && directSum > 0) {
+				// Отримуємо деталі боргів для створення нотифікацій
+				const allDebts = await tx.debt.findMany({
+					where: {
+						OR: [
+							{
+								debtorId: dto.debtorId,
+								creditorId: dto.creditorId,
+								status: DebtStatus.PENDING,
+								expense: { groupId: dto.groupId }
+							},
+							{
+								debtorId: dto.creditorId,
+								creditorId: dto.debtorId,
+								status: DebtStatus.PENDING,
+								expense: { groupId: dto.groupId }
+							}
+						]
+					},
+					include: {
+						expense: {
+							select: { description: true }
+						}
+					}
+				})
+
+				// Оновлюємо статус боргів
 				await tx.debt.updateMany({
 					where: {
 						OR: [
@@ -128,6 +197,41 @@ export class DebtsService {
 					},
 					data: { remaining: 0, status: DebtStatus.SETTLED }
 				})
+
+				// Створюємо нотифікації для всіх вирішених боргів
+				for (const debt of allDebts) {
+					if (debt.expense) {
+						// Нотифікація для боржника
+						await this.notificationsService.create({
+							userId: debt.debtorId,
+							type: 'DEBT_SETTLED',
+							title: 'Debt settled',
+							message: `Your debt for "${debt.expense.description}" has been settled`,
+							relatedDebtId: debt.id,
+							relatedGroupId: dto.groupId,
+							metadata: {
+								expenseDescription: debt.expense.description,
+								amount: debt.amount,
+								isDebtor: true
+							}
+						})
+
+						// Нотифікація для кредитора
+						await this.notificationsService.create({
+							userId: debt.creditorId,
+							type: 'DEBT_SETTLED',
+							title: 'Debt settled',
+							message: `Debt for "${debt.expense.description}" has been settled`,
+							relatedDebtId: debt.id,
+							relatedGroupId: dto.groupId,
+							metadata: {
+								expenseDescription: debt.expense.description,
+								amount: debt.amount,
+								isDebtor: false
+							}
+						})
+					}
+				}
 			}
 		})
 
@@ -211,6 +315,47 @@ export class DebtsService {
 								: DebtStatus.PENDING
 					}
 				})
+
+				// Якщо борг знову став активним (PENDING), створюємо нотифікацію
+				if (newRemaining > 0) {
+					// Отримуємо деталі витрати для нотифікації
+					const expense = await tx.expense.findFirst({
+						where: { id: debt.expenseId },
+						select: { description: true }
+					})
+
+					if (expense) {
+						// Нотифікація для боржника
+						await this.notificationsService.create({
+							userId: debt.debtorId,
+							type: 'DEBT_CREATED',
+							title: 'Debt reactivated',
+							message: `Your debt for "${expense.description}" has been reactivated`,
+							relatedDebtId: debt.id,
+							relatedExpenseId: debt.expenseId,
+							metadata: {
+								expenseDescription: expense.description,
+								amount: newRemaining,
+								isDebtor: true
+							}
+						})
+
+						// Нотифікація для кредитора
+						await this.notificationsService.create({
+							userId: debt.creditorId,
+							type: 'DEBT_CREATED',
+							title: 'Debt reactivated',
+							message: `Debt for "${expense.description}" has been reactivated`,
+							relatedDebtId: debt.id,
+							relatedExpenseId: debt.expenseId,
+							metadata: {
+								expenseDescription: expense.description,
+								amount: newRemaining,
+								isDebtor: false
+							}
+						})
+					}
+				}
 			}
 		})
 

@@ -12,9 +12,10 @@ import { TwoFactorAuthModule } from './auth/two-factor-auth/two-factor-auth.modu
 import { FriendsModule } from './friends/friends.module'
 import { GroupsModule } from './groups/groups.module'
 import { GroupMembersModule } from './group-members/group-members.module'
-import { ExpensesModule } from './expenses/expenses.module';
-import { SummaryModule } from './summary/summary.module';
-import { DebtsModule } from './debts/debts.module';
+import { ExpensesModule } from './expenses/expenses.module'
+import { SummaryModule } from './summary/summary.module'
+import { DebtsModule } from './debts/debts.module'
+import { NotificationsModule } from './notifications/notifications.module'
 
 @Module({
 	imports: [
@@ -35,7 +36,8 @@ import { DebtsModule } from './debts/debts.module';
 		GroupMembersModule,
 		ExpensesModule,
 		SummaryModule,
-		DebtsModule
+		DebtsModule,
+		NotificationsModule
 	]
 })
 export class AppModule {}

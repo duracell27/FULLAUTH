@@ -8,8 +8,10 @@ import { GroupsService } from '@/groups/groups.service'
 import { MailService } from '@/libs/mail/mail.service'
 import { FriendsService } from '@/friends/friends.service'
 import { DebtsService } from '@/debts/debts.service'
+import { NotificationsModule } from '../notifications/notifications.module'
 
 @Module({
+	imports: [NotificationsModule],
 	controllers: [ExpensesController],
 	providers: [
 		ExpensesService,
