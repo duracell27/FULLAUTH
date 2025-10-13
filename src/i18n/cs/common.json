@@ -1,0 +1,278 @@
+{
+  "notifications": {
+    "friend_request": {
+      "title": "Nová žádost o přátelství",
+      "message": "{{senderName}} vám poslal žádost o přátelství"
+    },
+    "group_invitation": {
+      "title": "Pozvánka do skupiny",
+      "message": "{{inviterName}} vás pozval do skupiny \"{{groupName}}\""
+    },
+    "expense_added": {
+      "title": "Nový výdaj",
+      "message": "Nový výdaj \"{{expenseDescription}}\" přidán do skupiny \"{{groupName}}\" za {{amount}}"
+    },
+    "debt_created": {
+      "title_debtor": "Nový dluh",
+      "title_creditor": "Nový kredit",
+      "message_debtor": "Dlužíte {{amount}} za výdaj \"{{expenseDescription}}\"",
+      "message_creditor": "Dostáváte {{amount}} za výdaj \"{{expenseDescription}}\""
+    },
+    "user_removed_from_group": {
+      "title": "Odebrán ze skupiny",
+      "message": "{{removerName}} vás odebral ze skupiny \"{{groupName}}\""
+    },
+    "validation": {
+      "user_id": {
+        "required": "ID uživatele je povinné.",
+        "uuid": "ID uživatele musí být platné UUID."
+      },
+      "type": {
+        "required": "Typ je povinný.",
+        "enum": "Typ musí být platný typ notifikace."
+      },
+      "title": {
+        "required": "Název je povinný.",
+        "string": "Název musí být řetězec."
+      },
+      "message": {
+        "required": "Zpráva je povinná.",
+        "string": "Zpráva musí být řetězec."
+      },
+      "related_user_id": {
+        "uuid": "Související ID uživatele musí být platné UUID."
+      },
+      "related_group_id": {
+        "uuid": "Související ID skupiny musí být platné UUID."
+      },
+      "related_expense_id": {
+        "uuid": "Související ID výdaje musí být platné UUID."
+      },
+      "related_debt_id": {
+        "uuid": "Související ID dluhu musí být platné UUID."
+      }
+    }
+  },
+  "auth": {
+    "register": {
+      "success": "Úspěšně registrováno. Zkontrolujte prosím svůj email pro potvrzovací odkaz.",
+      "user_exists": "Uživatel s tímto emailem již existuje"
+    },
+    "login": {
+      "user_not_found": "Uživatel nenalezen",
+      "invalid_password": "Neplatné heslo",
+      "email_not_verified": "Email není ověřen",
+      "two_factor_required": "Zadejte prosím kód dvoufaktorového ověření z vašeho emailu."
+    },
+    "oauth": {
+      "code_required": "Kód je povinný"
+    },
+    "session": {
+      "save_error": "Chyba při ukládání relace",
+      "destroy_error": "Chyba při ničení dat relace."
+    }
+  },
+  "validation": {
+    "name": {
+      "string": "Jméno musí být řetězec.",
+      "required": "Jméno je povinné."
+    },
+    "email": {
+      "string": "Email musí být řetězec.",
+      "email": "Neplatný formát emailu.",
+      "required": "Email je povinný."
+    },
+    "password": {
+      "string": "Heslo musí být řetězec.",
+      "min_length": "Heslo musí mít alespoň 6 znaků.",
+      "required": "Heslo je povinné."
+    },
+    "user_id": {
+      "string": "ID uživatele musí být řetězec.",
+      "required": "ID uživatele je povinné.",
+      "uuid": "ID uživatele musí být platné UUID."
+    }
+  },
+  "debts": {
+    "validation": {
+      "group_id": {
+        "string": "ID skupiny musí být řetězec.",
+        "required": "ID skupiny je povinné.",
+        "uuid": "ID skupiny musí být platné UUID."
+      },
+      "creditor_id": {
+        "string": "ID věřitele musí být řetězec.",
+        "required": "ID věřitele je povinné.",
+        "uuid": "ID věřitele musí být platné UUID."
+      },
+      "debtor_id": {
+        "string": "ID dlužníka musí být řetězec.",
+        "required": "ID dlužníka je povinné.",
+        "uuid": "ID dlužníka musí být platné UUID."
+      },
+      "amount": {
+        "number": "Částka musí být číslo.",
+        "positive": "Částka musí být kladná.",
+        "required": "Částka je povinná."
+      }
+    }
+  },
+  "expenses": {
+    "validation": {
+      "user_id": {
+        "uuid": "ID uživatele musí být platné UUID.",
+        "required": "ID uživatele je povinné."
+      },
+      "amount": {
+        "number": "Částka musí být číslo.",
+        "min": "Částka musí být alespoň 0.01.",
+        "required": "Částka je povinná."
+      },
+      "description": {
+        "string": "Popis musí být řetězec.",
+        "required": "Popis je povinný."
+      },
+      "group_id": {
+        "uuid": "ID skupiny musí být platné UUID.",
+        "required": "ID skupiny je povinné."
+      },
+      "category": {
+        "enum": "Kategorie musí být platná hodnota.",
+        "required": "Kategorie je povinná."
+      },
+      "date": {
+        "date": "Datum musí být platné datum.",
+        "required": "Datum je povinné."
+      },
+      "debtor_shares": {
+        "object": "Podíly dlužníků musí být objekt.",
+        "required": "Podíly dlužníků jsou povinné."
+      },
+      "debtor_shares_array": {
+        "array": "Podíly dlužníků musí být pole.",
+        "required": "Podíly dlužníků jsou povinné."
+      }
+    }
+  },
+  "friends": {
+    "validation": {
+      "receiver_user_id": {
+        "string": "ID příjemce uživatele musí být řetězec.",
+        "required": "ID příjemce uživatele je povinné."
+      },
+      "friend_request_id": {
+        "string": "ID žádosti o přátelství musí být řetězec.",
+        "required": "ID žádosti o přátelství je povinné."
+      }
+    },
+    "errors": {
+      "cannot_send_to_self": "Nemůžete poslat žádost o přátelství sami sobě",
+      "request_already_exists": "Žádost o přátelství již existuje",
+      "already_friends": "Uživatelé jsou již přátelé",
+      "request_not_found": "Žádost o přátelství nenalezena"
+    }
+  },
+  "group_members": {
+    "validation": {
+      "group_id": {
+        "string": "ID skupiny musí být řetězec.",
+        "required": "ID skupiny je povinné."
+      },
+      "user_id": {
+        "string": "ID uživatele musí být řetězec.",
+        "required": "ID uživatele je povinné."
+      }
+    },
+    "errors": {
+      "cannot_add_to_personal": "Uživatelé nemohou být přidáni do osobních skupin přes tento endpoint. Osobní skupiny jsou vytvářeny automaticky s přesně 2 členy.",
+      "user_already_in_group": "Uživatel je již ve skupině nebo ještě nepotvrdil členství",
+      "user_rejected_request": "Uživatel odmítl žádost",
+      "group_not_found": "Skupina nenalezena",
+      "user_not_found": "Uživatel nenalezen",
+      "not_group_admin": "Nejste administrátorem této skupiny",
+      "cannot_remove_from_personal": "Uživatelé nemohou být odebráni z osobních skupin. Osobní skupiny jsou navrženy tak, aby měly přesně 2 členy.",
+      "user_not_in_group": "Uživatel není ve skupině",
+      "user_involved_in_expenses": "Uživatel je zapojen do skupinových výdajů nebo dluhů a nemůže být odebrán."
+    }
+  },
+  "groups": {
+    "validation": {
+      "name": {
+        "string": "Název musí být řetězec.",
+        "required": "Název je povinný.",
+        "max_length": "Název nemůže mít více než 50 znaků."
+      },
+      "description": {
+        "string": "Popis musí být řetězec.",
+        "required": "Popis je povinný."
+      },
+      "start_date": {
+        "date": "Datum začátku musí být platné datum.",
+        "required": "Datum začátku je povinné."
+      },
+      "end_date": {
+        "date": "Datum konce musí být platné datum.",
+        "required": "Datum konce je povinné."
+      },
+      "is_personal": {
+        "boolean": "is_personal musí být logická hodnota.",
+        "required": "is_personal je povinné."
+      },
+      "user_id": {
+        "string": "ID uživatele musí být řetězec.",
+        "required": "ID uživatele je povinné.",
+        "uuid": "ID uživatele musí být platné UUID."
+      },
+      "group_id": {
+        "string": "ID skupiny musí být řetězec.",
+        "required": "ID skupiny je povinné.",
+        "uuid": "ID skupiny musí být platné UUID."
+      }
+    },
+    "errors": {
+      "user_not_found": "Uživatel nenalezen",
+      "cannot_create_with_self": "Osobní skupina nemůže být vytvořena se sebou samým",
+      "personal_group_exists": "Osobní skupina mezi těmito uživateli již existuje",
+      "not_group_admin": "Nejste administrátorem této skupiny",
+      "cannot_finish_with_debts": "Skupina nemůže být dokončena, dokud existují nezaplacené dluhy",
+      "can_only_delete_finished": "Skupinu můžete smazat pouze, pokud je dokončena. Můžete ji dokončit v nastavení skupiny při úpravě",
+      "cannot_delete_with_debts": "Skupina nemůže být smazána, dokud existují nezaplacené dluhy",
+      "group_not_found": "Skupina nenalezena",
+      "members_not_defined": "Členové skupiny nejsou správně definováni",
+      "user_not_in_group": "Uživatel není ve skupině"
+    }
+  },
+  "summary": {
+    "validation": {
+      "settler_user_id": {
+        "required": "ID uživatele pro vyrovnání je povinné.",
+        "string": "ID uživatele pro vyrovnání musí být řetězec."
+      }
+    }
+  },
+  "user": {
+    "validation": {
+      "name": {
+        "string": "Jméno musí být řetězec.",
+        "required": "Jméno je povinné."
+      },
+      "email": {
+        "string": "Email musí být řetězec.",
+        "email": "Neplatný formát emailu.",
+        "required": "Email je povinný."
+      },
+      "is_two_factor_enabled": {
+        "boolean": "Dvoufaktorové ověření musí být logická hodnota."
+      },
+      "language": {
+        "required": "Jazyk je povinný.",
+        "enum": "Jazyk musí být jeden z: EN, UK, DE, ES, FR, CS, PL, TR, HI, ZH."
+      }
+    }
+  },
+  "errors": {
+    "notification_not_found": "Notifikace nenalezena",
+    "user_not_found": "Uživatel nenalezen",
+    "invalid_language": "Neplatný jazyk"
+  }
+}

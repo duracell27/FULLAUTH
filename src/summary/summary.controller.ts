@@ -9,6 +9,7 @@ import {
 import { SummaryService } from './summary.service'
 import { Authorization } from '@/auth/decorators/auth.decorator'
 import { Authorized } from '@/auth/decorators/authorized.decorator'
+import { SettleUpDto } from './dto/settle-up.dto'
 
 @Controller('summary')
 export class SummaryController {
@@ -26,8 +27,8 @@ export class SummaryController {
 	@Post('settle-up')
 	public settleUpBalances(
 		@Authorized('id') userId: string,
-		@Body('settlerUserId') settlerUserId: string
+		@Body() dto: SettleUpDto
 	) {
-		return this.summaryService.settleUpBalances(userId, settlerUserId)
+		return this.summaryService.settleUpBalances(userId, dto.settlerUserId)
 	}
 }

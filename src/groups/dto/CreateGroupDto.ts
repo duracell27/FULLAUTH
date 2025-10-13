@@ -9,25 +9,25 @@ import {
 import { Type } from 'class-transformer'
 
 export class CreateGroupDto {
-	@IsString()
-	@IsNotEmpty({ message: 'Name is required' })
-	@MaxLength(100, { message: 'Name must be less than 100 characters' })
+	@IsString({ message: 'groups.validation.name.string' })
+	@IsNotEmpty({ message: 'groups.validation.name.required' })
+	@MaxLength(100, { message: 'groups.validation.name.max_length' })
 	name: string
 
-	@IsString()
+	@IsString({ message: 'groups.validation.avatar_url.string' })
 	@IsOptional()
 	avatarUrl?: string
 
-	@IsDate()
+	@IsDate({ message: 'groups.validation.event_date.date' })
 	@Type(() => Date)
 	@IsOptional()
 	eventDate?: Date
 
-	@IsBoolean()
+	@IsBoolean({ message: 'groups.validation.is_locked.boolean' })
 	@IsOptional()
 	isLocked?: boolean
 
-	@IsBoolean()
+	@IsBoolean({ message: 'groups.validation.is_finished.boolean' })
 	@IsOptional()
 	isFinished?: boolean
 }

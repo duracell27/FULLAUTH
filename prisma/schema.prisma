@@ -17,6 +17,7 @@ model User {
   isTwoFactorEnabled     Boolean          @default(false) @map("is_two_factor_enabled")
   method                 AuthMethod
   role                   UserRole         @default(REGULAR)
+  language               Language         @default(EN)
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
   accounts               Account[]
@@ -199,6 +200,19 @@ model Notification {
 enum UserRole {
   REGULAR
   ADMIN
+}
+
+enum Language {
+  EN
+  UK
+  DE
+  ES
+  FR
+  CS
+  PL
+  TR
+  HI
+  ZH
 }
 
 enum AuthMethod {

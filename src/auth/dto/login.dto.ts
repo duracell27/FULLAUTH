@@ -7,17 +7,17 @@ import {
 } from 'class-validator'
 
 export class LoginDto {
-	@IsString({ message: 'Email має бути рядком.' })
-	@IsEmail({}, { message: 'Некоректний формат email.' })
-	@IsNotEmpty({ message: 'Email є обов’язковим для заповнення.' })
+	@IsString({ message: 'validation.email.string' })
+	@IsEmail({}, { message: 'validation.email.invalid_format' })
+	@IsNotEmpty({ message: 'validation.email.required' })
 	email: string
 
-	@IsString({ message: 'Пароль має бути рядком.' })
-	@IsNotEmpty({ message: 'Поле пароль не може бути порожнім.' })
-	@MinLength(6, { message: 'Пароль має містити не менше 6 символів.' })
+	@IsString({ message: 'validation.password.string' })
+	@IsNotEmpty({ message: 'validation.password.required' })
+	@MinLength(6, { message: 'validation.password.min_length' })
 	password: string
 
 	@IsOptional()
-	@IsString()
+	@IsString({ message: 'validation.code.string' })
 	code: string
 }

@@ -1,0 +1,278 @@
+{
+  "notifications": {
+    "friend_request": {
+      "title": "新的好友请求",
+      "message": "{{senderName}} 向您发送了好友请求"
+    },
+    "group_invitation": {
+      "title": "群组邀请",
+      "message": "{{inviterName}} 邀请您加入群组 \"{{groupName}}\""
+    },
+    "expense_added": {
+      "title": "新支出",
+      "message": "新支出 \"{{expenseDescription}}\" 已添加到群组 \"{{groupName}}\"，金额为 {{amount}}"
+    },
+    "debt_created": {
+      "title_debtor": "新债务",
+      "title_creditor": "新信用",
+      "message_debtor": "您欠 \"{{expenseDescription}}\" 支出 {{amount}}",
+      "message_creditor": "您将收到 \"{{expenseDescription}}\" 支出的 {{amount}}"
+    },
+    "user_removed_from_group": {
+      "title": "已从群组中移除",
+      "message": "{{removerName}} 将您从群组 \"{{groupName}}\" 中移除"
+    },
+    "validation": {
+      "user_id": {
+        "required": "用户ID是必需的。",
+        "uuid": "用户ID必须是有效的UUID。"
+      },
+      "type": {
+        "required": "类型是必需的。",
+        "enum": "类型必须是有效的通知类型。"
+      },
+      "title": {
+        "required": "标题是必需的。",
+        "string": "标题必须是字符串。"
+      },
+      "message": {
+        "required": "消息是必需的。",
+        "string": "消息必须是字符串。"
+      },
+      "related_user_id": {
+        "uuid": "相关用户ID必须是有效的UUID。"
+      },
+      "related_group_id": {
+        "uuid": "相关群组ID必须是有效的UUID。"
+      },
+      "related_expense_id": {
+        "uuid": "相关支出ID必须是有效的UUID。"
+      },
+      "related_debt_id": {
+        "uuid": "相关债务ID必须是有效的UUID。"
+      }
+    }
+  },
+  "auth": {
+    "register": {
+      "success": "注册成功。请检查您的电子邮件以获取确认链接。",
+      "user_exists": "使用此电子邮件的用户已存在"
+    },
+    "login": {
+      "user_not_found": "未找到用户",
+      "invalid_password": "密码无效",
+      "email_not_verified": "电子邮件未验证",
+      "two_factor_required": "请输入您电子邮件中的双因素身份验证代码。"
+    },
+    "oauth": {
+      "code_required": "需要代码"
+    },
+    "session": {
+      "save_error": "保存会话时出错",
+      "destroy_error": "销毁会话数据时出错。"
+    }
+  },
+  "validation": {
+    "name": {
+      "string": "名称必须是字符串。",
+      "required": "名称是必需的。"
+    },
+    "email": {
+      "string": "电子邮件必须是字符串。",
+      "email": "电子邮件格式无效。",
+      "required": "电子邮件是必需的。"
+    },
+    "password": {
+      "string": "密码必须是字符串。",
+      "min_length": "密码必须至少6个字符。",
+      "required": "密码是必需的。"
+    },
+    "user_id": {
+      "string": "用户ID必须是字符串。",
+      "required": "用户ID是必需的。",
+      "uuid": "用户ID必须是有效的UUID。"
+    }
+  },
+  "debts": {
+    "validation": {
+      "group_id": {
+        "string": "群组ID必须是字符串。",
+        "required": "群组ID是必需的。",
+        "uuid": "群组ID必须是有效的UUID。"
+      },
+      "creditor_id": {
+        "string": "债权人ID必须是字符串。",
+        "required": "债权人ID是必需的。",
+        "uuid": "债权人ID必须是有效的UUID。"
+      },
+      "debtor_id": {
+        "string": "债务人ID必须是字符串。",
+        "required": "债务人ID是必需的。",
+        "uuid": "债务人ID必须是有效的UUID。"
+      },
+      "amount": {
+        "number": "金额必须是数字。",
+        "positive": "金额必须为正数。",
+        "required": "金额是必需的。"
+      }
+    }
+  },
+  "expenses": {
+    "validation": {
+      "user_id": {
+        "uuid": "用户ID必须是有效的UUID。",
+        "required": "用户ID是必需的。"
+      },
+      "amount": {
+        "number": "金额必须是数字。",
+        "min": "金额必须至少为0.01。",
+        "required": "金额是必需的。"
+      },
+      "description": {
+        "string": "描述必须是字符串。",
+        "required": "描述是必需的。"
+      },
+      "group_id": {
+        "uuid": "群组ID必须是有效的UUID。",
+        "required": "群组ID是必需的。"
+      },
+      "category": {
+        "enum": "类别必须是有效值。",
+        "required": "类别是必需的。"
+      },
+      "date": {
+        "date": "日期必须是有效日期。",
+        "required": "日期是必需的。"
+      },
+      "debtor_shares": {
+        "object": "债务人份额必须是对象。",
+        "required": "债务人份额是必需的。"
+      },
+      "debtor_shares_array": {
+        "array": "债务人份额必须是数组。",
+        "required": "债务人份额是必需的。"
+      }
+    }
+  },
+  "friends": {
+    "validation": {
+      "receiver_user_id": {
+        "string": "接收者用户ID必须是字符串。",
+        "required": "接收者用户ID是必需的。"
+      },
+      "friend_request_id": {
+        "string": "好友请求ID必须是字符串。",
+        "required": "好友请求ID是必需的。"
+      }
+    },
+    "errors": {
+      "cannot_send_to_self": "您不能向自己发送好友请求",
+      "request_already_exists": "好友请求已存在",
+      "already_friends": "用户已经是朋友",
+      "request_not_found": "未找到好友请求"
+    }
+  },
+  "group_members": {
+    "validation": {
+      "group_id": {
+        "string": "群组ID必须是字符串。",
+        "required": "群组ID是必需的。"
+      },
+      "user_id": {
+        "string": "用户ID必须是字符串。",
+        "required": "用户ID是必需的。"
+      }
+    },
+    "errors": {
+      "cannot_add_to_personal": "不能通过此端点将用户添加到个人群组。个人群组会自动创建，正好有2个成员。",
+      "user_already_in_group": "用户已在群组中或尚未确认成员资格",
+      "user_rejected_request": "用户拒绝了请求",
+      "group_not_found": "未找到群组",
+      "user_not_found": "未找到用户",
+      "not_group_admin": "您不是此群组的管理员",
+      "cannot_remove_from_personal": "不能从个人群组中移除用户。个人群组设计为正好有2个成员。",
+      "user_not_in_group": "用户不在群组中",
+      "user_involved_in_expenses": "用户参与群组支出或债务，无法移除。"
+    }
+  },
+  "groups": {
+    "validation": {
+      "name": {
+        "string": "名称必须是字符串。",
+        "required": "名称是必需的。",
+        "max_length": "名称不能超过50个字符。"
+      },
+      "description": {
+        "string": "描述必须是字符串。",
+        "required": "描述是必需的。"
+      },
+      "start_date": {
+        "date": "开始日期必须是有效日期。",
+        "required": "开始日期是必需的。"
+      },
+      "end_date": {
+        "date": "结束日期必须是有效日期。",
+        "required": "结束日期是必需的。"
+      },
+      "is_personal": {
+        "boolean": "is_personal必须是布尔值。",
+        "required": "is_personal是必需的。"
+      },
+      "user_id": {
+        "string": "用户ID必须是字符串。",
+        "required": "用户ID是必需的。",
+        "uuid": "用户ID必须是有效的UUID。"
+      },
+      "group_id": {
+        "string": "群组ID必须是字符串。",
+        "required": "群组ID是必需的。",
+        "uuid": "群组ID必须是有效的UUID。"
+      }
+    },
+    "errors": {
+      "user_not_found": "未找到用户",
+      "cannot_create_with_self": "不能与自己创建个人群组",
+      "personal_group_exists": "这些用户之间的个人群组已存在",
+      "not_group_admin": "您不是此群组的管理员",
+      "cannot_finish_with_debts": "有未偿还债务时无法完成群组",
+      "can_only_delete_finished": "只有在群组完成时才能删除。您可以在编辑时的群组设置中完成它",
+      "cannot_delete_with_debts": "有未偿还债务时无法删除群组",
+      "group_not_found": "未找到群组",
+      "members_not_defined": "群组成员未正确定义",
+      "user_not_in_group": "用户不在群组中"
+    }
+  },
+  "summary": {
+    "validation": {
+      "settler_user_id": {
+        "required": "结算用户ID是必需的。",
+        "string": "结算用户ID必须是字符串。"
+      }
+    }
+  },
+  "user": {
+    "validation": {
+      "name": {
+        "string": "名称必须是字符串。",
+        "required": "名称是必需的。"
+      },
+      "email": {
+        "string": "电子邮件必须是字符串。",
+        "email": "电子邮件格式无效。",
+        "required": "电子邮件是必需的。"
+      },
+      "is_two_factor_enabled": {
+        "boolean": "双因素身份验证必须是布尔值。"
+      },
+      "language": {
+        "required": "语言是必需的。",
+        "enum": "语言必须是以下之一：EN, UK, DE, ES, FR, CS, PL, TR, HI, ZH。"
+      }
+    }
+  },
+  "errors": {
+    "notification_not_found": "未找到通知",
+    "user_not_found": "未找到用户",
+    "invalid_language": "无效语言"
+  }
+}

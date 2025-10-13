@@ -1,0 +1,330 @@
+{
+  "notifications": {
+    "friend_request": {
+      "title": "New friend request",
+      "message": "{{senderName}} sent you a friend request"
+    },
+    "group_invitation": {
+      "title": "Group invitation", 
+      "message": "{{inviterName}} invited you to the group \"{{groupName}}\""
+    },
+    "expense_added": {
+      "title": "New expense",
+      "message": "New expense \"{{expenseDescription}}\" added to the group \"{{groupName}}\" for {{amount}}"
+    },
+    "debt_created": {
+      "title_debtor": "New debt",
+      "title_creditor": "New credit",
+      "message_debtor": "You owe {{amount}} for the expense \"{{expenseDescription}}\"",
+      "message_creditor": "You get back {{amount}} for the expense \"{{expenseDescription}}\""
+    },
+    "user_removed_from_group": {
+      "title": "Removed from group",
+      "message": "{{removerName}} removed you from the group \"{{groupName}}\""
+    },
+    "validation": {
+      "user_id": {
+        "required": "User ID is required.",
+        "uuid": "User ID must be a valid UUID."
+      },
+      "type": {
+        "required": "Type is required.",
+        "enum": "Type must be a valid notification type."
+      },
+      "title": {
+        "required": "Title is required.",
+        "string": "Title must be a string."
+      },
+      "message": {
+        "required": "Message is required.",
+        "string": "Message must be a string."
+      },
+      "related_user_id": {
+        "uuid": "Related user ID must be a valid UUID."
+      },
+      "related_group_id": {
+        "uuid": "Related group ID must be a valid UUID."
+      },
+      "related_expense_id": {
+        "uuid": "Related expense ID must be a valid UUID."
+      },
+      "related_debt_id": {
+        "uuid": "Related debt ID must be a valid UUID."
+      }
+    }
+  },
+  "auth": {
+    "register": {
+      "success": "Successfully registered. Please check your email for confirmation link.",
+      "user_exists": "User with this email already exists"
+    },
+    "login": {
+      "user_not_found": "User not found",
+      "invalid_password": "Invalid password",
+      "email_not_verified": "Email not verified",
+      "two_factor_required": "Please enter the two-factor authentication code from your email."
+    },
+    "oauth": {
+      "code_required": "Code is required"
+    },
+    "session": {
+      "save_error": "Error saving session",
+      "destroy_error": "Error destroying session data."
+    }
+  },
+  "validation": {
+    "name": {
+      "string": "Name must be a string.",
+      "required": "Name is required."
+    },
+    "email": {
+      "string": "Email must be a string.",
+      "invalid_format": "Invalid email format.",
+      "required": "Email is required."
+    },
+    "password": {
+      "string": "Password must be a string.",
+      "required": "Password is required.",
+      "min_length": "Password must contain at least 6 characters."
+    },
+    "password_repeat": {
+      "string": "Confirmation password must be a string.",
+      "required": "Confirmation password field cannot be empty.",
+      "min_length": "Confirmation password must contain at least 6 characters.",
+      "not_matching": "Passwords do not match."
+    },
+    "code": {
+      "string": "Code must be a string."
+    },
+    "group_id": {
+      "string": "Group ID must be a string.",
+      "required": "Group ID is required.",
+      "uuid": "Group ID must be a valid UUID."
+    },
+    "creditor_id": {
+      "string": "Creditor ID must be a string.",
+      "required": "Creditor ID is required."
+    },
+    "debtor_id": {
+      "string": "Debtor ID must be a string.",
+      "required": "Debtor ID is required."
+    },
+    "amount": {
+      "number": "Amount must be a number.",
+      "positive": "Amount must be positive."
+    },
+    "user_id": {
+      "uuid": "User ID must be a valid UUID."
+    },
+    "description": {
+      "string": "Description must be a string.",
+      "required": "Description is required."
+    },
+    "split_type": {
+      "enum": "Split type must be a valid enum value."
+    },
+    "photo_url": {
+      "string": "Photo URL must be a string."
+    },
+    "date": {
+      "date": "Date must be a valid date."
+    },
+    "form_data": {
+      "object": "Form data must be an object."
+    },
+    "payers": {
+      "array": "Payers must be an array."
+    },
+    "debtors": {
+      "array": "Debtors must be an array."
+    },
+    "percentage": {
+      "number": "Percentage must be a number."
+    },
+    "shares": {
+      "number": "Shares must be a number."
+    },
+    "extra_amount": {
+      "number": "Extra amount must be a number."
+    }
+  },
+  "debts": {
+    "payment": {
+      "amount_positive": "Amount must be positive",
+      "not_group_member": "You are not a member of this group",
+      "no_pending_debts": "No pending debts found in this group",
+      "amount_too_large": "Amount is greater than the sum of all debts",
+      "required_fields_missing": "Required fields for deleting debt payment are missing",
+      "no_debts_found": "No debts found between these users in this group",
+      "no_payments_found": "No payments found to delete"
+    },
+    "notifications": {
+      "debt_settled": {
+        "title": "Debt settled",
+        "message_debtor": "Your debt for \"{{expenseDescription}}\" has been settled",
+        "message_creditor": "Debt for \"{{expenseDescription}}\" has been settled"
+      },
+      "debt_reactivated": {
+        "title": "Debt reactivated",
+        "message_debtor": "Your debt for \"{{expenseDescription}}\" has been reactivated",
+        "message_creditor": "Debt for \"{{expenseDescription}}\" has been reactivated"
+      }
+    }
+  },
+  "expenses": {
+    "validation": {
+      "payments_sum_mismatch": "Sum of payments does not match the total expense amount.",
+      "not_group_member": "You are not a member of this group",
+      "no_debtors": "At least one debtor is required to split the expense.",
+      "percentage_sum_invalid": "Sum of percentages for splitting must equal 100.",
+      "custom_sum_mismatch": "Sum of custom debts does not match the total expense amount.",
+      "shares_invalid": "Total number of shares for splitting must be greater than zero.",
+      "extra_amount_exceeds": "Sum of extra payments cannot exceed the total expense amount.",
+      "unsupported_split_type": "Unsupported expense split type.",
+      "calculated_sum_mismatch": "Final calculated sum of debts ({{calculatedTotal}}) does not match the total expense amount ({{totalAmount}})."
+    },
+    "errors": {
+      "not_found": "Expense not found or you do not have permission to view it.",
+      "not_found_simple": "Expense not found.",
+      "not_admin_or_creator": "You are not admin of this group or the creator of the expense",
+      "cannot_delete_paid": "Can not delete expense, because debts have been paid",
+      "cannot_edit": "You can not edit this expense because you are not admin of this group or the creator of the expense"
+    },
+    "notifications": {
+      "new_debt": {
+        "title": "New debt",
+        "message": "You owe {{amount}} for the expense \"{{expenseDescription}}\""
+      },
+      "new_credit": {
+        "title": "New credit", 
+        "message": "You get back {{amount}} for the expense \"{{expenseDescription}}\""
+      }
+    }
+  },
+  "friends": {
+    "errors": {
+      "cannot_send_to_self": "You can not send a friend request to yourself",
+      "request_already_exists": "Friend request already exists",
+      "already_friends": "Users are already friends",
+      "request_not_found": "Friend request not found"
+    },
+    "validation": {
+      "receiver_user_id": {
+        "string": "Receiver user ID must be a string.",
+        "required": "Receiver user ID is required."
+      },
+      "friend_request_id": {
+        "string": "Friend request ID must be a string.",
+        "required": "Friend request ID is required."
+      }
+    }
+  },
+  "group_members": {
+    "errors": {
+      "cannot_add_to_personal": "Cannot add users to personal groups through this endpoint. Personal groups are created automatically with exactly 2 members.",
+      "user_already_in_group": "User is already in the group or has not yet confirmed membership",
+      "user_rejected_request": "User has rejected the request",
+      "group_not_found": "Group not found",
+      "user_not_found": "User not found",
+      "not_group_admin": "You are not admin of this group",
+      "cannot_remove_from_personal": "Cannot remove users from personal groups. Personal groups are designed to have exactly 2 members.",
+      "user_not_in_group": "User is not in the group",
+      "user_involved_in_expenses": "User is involved in group expenses or debts and cannot be removed."
+    },
+    "notifications": {
+      "invitation_accepted": {
+        "title": "Group invitation accepted",
+        "message": "{{userName}} accepted the invitation to join the group \"{{groupName}}\""
+      },
+      "invitation_rejected": {
+        "title": "Group invitation rejected",
+        "message": "{{userName}} rejected the invitation to join the group \"{{groupName}}\""
+      }
+    },
+    "validation": {
+      "group_id": {
+        "string": "Group ID must be a string.",
+        "required": "Group ID is required."
+      },
+      "user_id": {
+        "string": "User ID must be a string.",
+        "required": "User ID is required."
+      }
+    }
+  },
+  "groups": {
+    "errors": {
+      "user_not_found": "User not found",
+      "cannot_create_with_self": "Cannot create personal group with yourself",
+      "personal_group_exists": "Personal group already exists between these users",
+      "not_group_admin": "You are not admin of this group",
+      "cannot_finish_with_debts": "Group cannot be finished while there are unpaid debts",
+      "can_only_delete_finished": "You can only delete a group if it is finished. You can finish it in the group settings when editing",
+      "cannot_delete_with_debts": "Group cannot be deleted while there are unpaid debts",
+      "group_not_found": "Group not found",
+      "members_not_defined": "Group members are not properly defined",
+      "user_not_in_group": "User is not in the group"
+    },
+    "validation": {
+      "name": {
+        "string": "Name must be a string.",
+        "required": "Name is required.",
+        "max_length": "Name must be less than 100 characters."
+      },
+      "avatar_url": {
+        "string": "Avatar URL must be a string."
+      },
+      "event_date": {
+        "date": "Event date must be a valid date."
+      },
+      "is_locked": {
+        "boolean": "Is locked must be a boolean."
+      },
+      "is_finished": {
+        "boolean": "Is finished must be a boolean."
+      },
+      "group_id": {
+        "string": "Group ID must be a string.",
+        "required": "Group ID is required."
+      },
+      "user_id": {
+        "string": "User ID must be a string.",
+        "required": "User ID is required.",
+        "uuid": "User ID must be a valid UUID."
+      }
+    }
+  },
+  "summary": {
+    "validation": {
+      "settler_user_id": {
+        "required": "Settler user ID is required.",
+        "string": "Settler user ID must be a string."
+      }
+    }
+  },
+  "user": {
+    "validation": {
+      "name": {
+        "string": "Name must be a string.",
+        "required": "Name is required."
+      },
+      "email": {
+        "string": "Email must be a string.",
+        "email": "Invalid email format.",
+        "required": "Email is required."
+      },
+      "is_two_factor_enabled": {
+        "boolean": "Two factor enabled must be a boolean value."
+      },
+      "language": {
+        "required": "Language is required.",
+        "enum": "Language must be one of: EN, UK, DE, ES, FR, CS, PL, TR, HI, ZH."
+      }
+    }
+  },
+  "errors": {
+    "notification_not_found": "Notification not found",
+    "user_not_found": "User not found",
+    "invalid_language": "Invalid language"
+  }
+}

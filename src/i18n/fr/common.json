@@ -1,0 +1,278 @@
+{
+  "notifications": {
+    "friend_request": {
+      "title": "Nouvelle demande d'ami",
+      "message": "{{senderName}} vous a envoyé une demande d'ami"
+    },
+    "group_invitation": {
+      "title": "Invitation au groupe",
+      "message": "{{inviterName}} vous a invité au groupe \"{{groupName}}\""
+    },
+    "expense_added": {
+      "title": "Nouvelle dépense",
+      "message": "Nouvelle dépense \"{{expenseDescription}}\" ajoutée au groupe \"{{groupName}}\" pour {{amount}}"
+    },
+    "debt_created": {
+      "title_debtor": "Nouvelle dette",
+      "title_creditor": "Nouveau crédit",
+      "message_debtor": "Vous devez {{amount}} pour la dépense \"{{expenseDescription}}\"",
+      "message_creditor": "Vous recevez {{amount}} pour la dépense \"{{expenseDescription}}\""
+    },
+    "user_removed_from_group": {
+      "title": "Supprimé du groupe",
+      "message": "{{removerName}} vous a supprimé du groupe \"{{groupName}}\""
+    },
+    "validation": {
+      "user_id": {
+        "required": "ID utilisateur requis.",
+        "uuid": "ID utilisateur doit être un UUID valide."
+      },
+      "type": {
+        "required": "Type requis.",
+        "enum": "Type doit être un type de notification valide."
+      },
+      "title": {
+        "required": "Titre requis.",
+        "string": "Titre doit être une chaîne."
+      },
+      "message": {
+        "required": "Message requis.",
+        "string": "Message doit être une chaîne."
+      },
+      "related_user_id": {
+        "uuid": "ID utilisateur lié doit être un UUID valide."
+      },
+      "related_group_id": {
+        "uuid": "ID groupe lié doit être un UUID valide."
+      },
+      "related_expense_id": {
+        "uuid": "ID dépense liée doit être un UUID valide."
+      },
+      "related_debt_id": {
+        "uuid": "ID dette liée doit être un UUID valide."
+      }
+    }
+  },
+  "auth": {
+    "register": {
+      "success": "Inscription réussie. Veuillez vérifier votre email pour le lien de confirmation.",
+      "user_exists": "Utilisateur avec cet email existe déjà"
+    },
+    "login": {
+      "user_not_found": "Utilisateur non trouvé",
+      "invalid_password": "Mot de passe invalide",
+      "email_not_verified": "Email non vérifié",
+      "two_factor_required": "Veuillez saisir le code d'authentification à deux facteurs de votre email."
+    },
+    "oauth": {
+      "code_required": "Code requis"
+    },
+    "session": {
+      "save_error": "Erreur lors de la sauvegarde de la session",
+      "destroy_error": "Erreur lors de la destruction des données de session."
+    }
+  },
+  "validation": {
+    "name": {
+      "string": "Nom doit être une chaîne.",
+      "required": "Nom requis."
+    },
+    "email": {
+      "string": "Email doit être une chaîne.",
+      "email": "Format d'email invalide.",
+      "required": "Email requis."
+    },
+    "password": {
+      "string": "Mot de passe doit être une chaîne.",
+      "min_length": "Mot de passe doit contenir au moins 6 caractères.",
+      "required": "Mot de passe requis."
+    },
+    "user_id": {
+      "string": "ID utilisateur doit être une chaîne.",
+      "required": "ID utilisateur requis.",
+      "uuid": "ID utilisateur doit être un UUID valide."
+    }
+  },
+  "debts": {
+    "validation": {
+      "group_id": {
+        "string": "ID groupe doit être une chaîne.",
+        "required": "ID groupe requis.",
+        "uuid": "ID groupe doit être un UUID valide."
+      },
+      "creditor_id": {
+        "string": "ID créancier doit être une chaîne.",
+        "required": "ID créancier requis.",
+        "uuid": "ID créancier doit être un UUID valide."
+      },
+      "debtor_id": {
+        "string": "ID débiteur doit être une chaîne.",
+        "required": "ID débiteur requis.",
+        "uuid": "ID débiteur doit être un UUID valide."
+      },
+      "amount": {
+        "number": "Montant doit être un nombre.",
+        "positive": "Montant doit être positif.",
+        "required": "Montant requis."
+      }
+    }
+  },
+  "expenses": {
+    "validation": {
+      "user_id": {
+        "uuid": "ID utilisateur doit être un UUID valide.",
+        "required": "ID utilisateur requis."
+      },
+      "amount": {
+        "number": "Montant doit être un nombre.",
+        "min": "Montant doit être au moins 0.01.",
+        "required": "Montant requis."
+      },
+      "description": {
+        "string": "Description doit être une chaîne.",
+        "required": "Description requise."
+      },
+      "group_id": {
+        "uuid": "ID groupe doit être un UUID valide.",
+        "required": "ID groupe requis."
+      },
+      "category": {
+        "enum": "Catégorie doit être une valeur valide.",
+        "required": "Catégorie requise."
+      },
+      "date": {
+        "date": "Date doit être une date valide.",
+        "required": "Date requise."
+      },
+      "debtor_shares": {
+        "object": "Parts de débiteurs doivent être un objet.",
+        "required": "Parts de débiteurs requises."
+      },
+      "debtor_shares_array": {
+        "array": "Parts de débiteurs doivent être un tableau.",
+        "required": "Parts de débiteurs requises."
+      }
+    }
+  },
+  "friends": {
+    "validation": {
+      "receiver_user_id": {
+        "string": "ID utilisateur destinataire doit être une chaîne.",
+        "required": "ID utilisateur destinataire requis."
+      },
+      "friend_request_id": {
+        "string": "ID demande d'ami doit être une chaîne.",
+        "required": "ID demande d'ami requis."
+      }
+    },
+    "errors": {
+      "cannot_send_to_self": "Vous ne pouvez pas envoyer une demande d'ami à vous-même",
+      "request_already_exists": "Demande d'ami existe déjà",
+      "already_friends": "Les utilisateurs sont déjà amis",
+      "request_not_found": "Demande d'ami non trouvée"
+    }
+  },
+  "group_members": {
+    "validation": {
+      "group_id": {
+        "string": "ID groupe doit être une chaîne.",
+        "required": "ID groupe requis."
+      },
+      "user_id": {
+        "string": "ID utilisateur doit être une chaîne.",
+        "required": "ID utilisateur requis."
+      }
+    },
+    "errors": {
+      "cannot_add_to_personal": "Les utilisateurs ne peuvent pas être ajoutés aux groupes personnels via ce point de terminaison. Les groupes personnels sont créés automatiquement avec exactement 2 membres.",
+      "user_already_in_group": "L'utilisateur est déjà dans le groupe ou n'a pas encore confirmé l'adhésion",
+      "user_rejected_request": "L'utilisateur a rejeté la demande",
+      "group_not_found": "Groupe non trouvé",
+      "user_not_found": "Utilisateur non trouvé",
+      "not_group_admin": "Vous n'êtes pas administrateur de ce groupe",
+      "cannot_remove_from_personal": "Les utilisateurs ne peuvent pas être supprimés des groupes personnels. Les groupes personnels sont conçus pour avoir exactement 2 membres.",
+      "user_not_in_group": "L'utilisateur n'est pas dans le groupe",
+      "user_involved_in_expenses": "L'utilisateur est impliqué dans les dépenses ou dettes du groupe et ne peut pas être supprimé."
+    }
+  },
+  "groups": {
+    "validation": {
+      "name": {
+        "string": "Nom doit être une chaîne.",
+        "required": "Nom requis.",
+        "max_length": "Nom ne peut pas dépasser 50 caractères."
+      },
+      "description": {
+        "string": "Description doit être une chaîne.",
+        "required": "Description requise."
+      },
+      "start_date": {
+        "date": "Date de début doit être une date valide.",
+        "required": "Date de début requise."
+      },
+      "end_date": {
+        "date": "Date de fin doit être une date valide.",
+        "required": "Date de fin requise."
+      },
+      "is_personal": {
+        "boolean": "is_personal doit être une valeur booléenne.",
+        "required": "is_personal requis."
+      },
+      "user_id": {
+        "string": "ID utilisateur doit être une chaîne.",
+        "required": "ID utilisateur requis.",
+        "uuid": "ID utilisateur doit être un UUID valide."
+      },
+      "group_id": {
+        "string": "ID groupe doit être une chaîne.",
+        "required": "ID groupe requis.",
+        "uuid": "ID groupe doit être un UUID valide."
+      }
+    },
+    "errors": {
+      "user_not_found": "Utilisateur non trouvé",
+      "cannot_create_with_self": "Groupe personnel ne peut pas être créé avec soi-même",
+      "personal_group_exists": "Groupe personnel entre ces utilisateurs existe déjà",
+      "not_group_admin": "Vous n'êtes pas administrateur de ce groupe",
+      "cannot_finish_with_debts": "Le groupe ne peut pas être terminé tant qu'il y a des dettes impayées",
+      "can_only_delete_finished": "Vous ne pouvez supprimer un groupe que s'il est terminé. Vous pouvez le terminer dans les paramètres du groupe lors de l'édition",
+      "cannot_delete_with_debts": "Le groupe ne peut pas être supprimé tant qu'il y a des dettes impayées",
+      "group_not_found": "Groupe non trouvé",
+      "members_not_defined": "Les membres du groupe ne sont pas correctement définis",
+      "user_not_in_group": "L'utilisateur n'est pas dans le groupe"
+    }
+  },
+  "summary": {
+    "validation": {
+      "settler_user_id": {
+        "required": "ID utilisateur liquidateur requis.",
+        "string": "ID utilisateur liquidateur doit être une chaîne."
+      }
+    }
+  },
+  "user": {
+    "validation": {
+      "name": {
+        "string": "Nom doit être une chaîne.",
+        "required": "Nom requis."
+      },
+      "email": {
+        "string": "Email doit être une chaîne.",
+        "email": "Format d'email invalide.",
+        "required": "Email requis."
+      },
+      "is_two_factor_enabled": {
+        "boolean": "Authentification à deux facteurs doit être une valeur booléenne."
+      },
+      "language": {
+        "required": "Langue requise.",
+        "enum": "Langue doit être l'une de : EN, UK, DE, ES, FR, CS, PL, TR, HI, ZH."
+      }
+    }
+  },
+  "errors": {
+    "notification_not_found": "Notification non trouvée",
+    "user_not_found": "Utilisateur non trouvé",
+    "invalid_language": "Langue invalide"
+  }
+}

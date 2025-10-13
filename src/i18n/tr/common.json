@@ -1,0 +1,278 @@
+{
+  "notifications": {
+    "friend_request": {
+      "title": "Yeni arkadaşlık isteği",
+      "message": "{{senderName}} size bir arkadaşlık isteği gönderdi"
+    },
+    "group_invitation": {
+      "title": "Grup daveti",
+      "message": "{{inviterName}} sizi \"{{groupName}}\" grubuna davet etti"
+    },
+    "expense_added": {
+      "title": "Yeni harcama",
+      "message": "Yeni harcama \"{{expenseDescription}}\" \"{{groupName}}\" grubuna {{amount}} için eklendi"
+    },
+    "debt_created": {
+      "title_debtor": "Yeni borç",
+      "title_creditor": "Yeni kredi",
+      "message_debtor": "\"{{expenseDescription}}\" harcaması için {{amount}} borçlusunuz",
+      "message_creditor": "\"{{expenseDescription}}\" harcaması için {{amount}} alıyorsunuz"
+    },
+    "user_removed_from_group": {
+      "title": "Gruptan çıkarıldı",
+      "message": "{{removerName}} sizi \"{{groupName}}\" grubundan çıkardı"
+    },
+    "validation": {
+      "user_id": {
+        "required": "Kullanıcı ID'si gerekli.",
+        "uuid": "Kullanıcı ID'si geçerli bir UUID olmalı."
+      },
+      "type": {
+        "required": "Tür gerekli.",
+        "enum": "Tür geçerli bir bildirim türü olmalı."
+      },
+      "title": {
+        "required": "Başlık gerekli.",
+        "string": "Başlık bir dize olmalı."
+      },
+      "message": {
+        "required": "Mesaj gerekli.",
+        "string": "Mesaj bir dize olmalı."
+      },
+      "related_user_id": {
+        "uuid": "İlgili kullanıcı ID'si geçerli bir UUID olmalı."
+      },
+      "related_group_id": {
+        "uuid": "İlgili grup ID'si geçerli bir UUID olmalı."
+      },
+      "related_expense_id": {
+        "uuid": "İlgili harcama ID'si geçerli bir UUID olmalı."
+      },
+      "related_debt_id": {
+        "uuid": "İlgili borç ID'si geçerli bir UUID olmalı."
+      }
+    }
+  },
+  "auth": {
+    "register": {
+      "success": "Başarıyla kayıt olundu. Lütfen onay bağlantısı için e-postanızı kontrol edin.",
+      "user_exists": "Bu e-posta ile kullanıcı zaten mevcut"
+    },
+    "login": {
+      "user_not_found": "Kullanıcı bulunamadı",
+      "invalid_password": "Geçersiz şifre",
+      "email_not_verified": "E-posta doğrulanmamış",
+      "two_factor_required": "Lütfen e-postanızdan iki faktörlü kimlik doğrulama kodunu girin."
+    },
+    "oauth": {
+      "code_required": "Kod gerekli"
+    },
+    "session": {
+      "save_error": "Oturum kaydedilirken hata",
+      "destroy_error": "Oturum verileri yok edilirken hata."
+    }
+  },
+  "validation": {
+    "name": {
+      "string": "İsim bir dize olmalı.",
+      "required": "İsim gerekli."
+    },
+    "email": {
+      "string": "E-posta bir dize olmalı.",
+      "email": "Geçersiz e-posta formatı.",
+      "required": "E-posta gerekli."
+    },
+    "password": {
+      "string": "Şifre bir dize olmalı.",
+      "min_length": "Şifre en az 6 karakter olmalı.",
+      "required": "Şifre gerekli."
+    },
+    "user_id": {
+      "string": "Kullanıcı ID'si bir dize olmalı.",
+      "required": "Kullanıcı ID'si gerekli.",
+      "uuid": "Kullanıcı ID'si geçerli bir UUID olmalı."
+    }
+  },
+  "debts": {
+    "validation": {
+      "group_id": {
+        "string": "Grup ID'si bir dize olmalı.",
+        "required": "Grup ID'si gerekli.",
+        "uuid": "Grup ID'si geçerli bir UUID olmalı."
+      },
+      "creditor_id": {
+        "string": "Alacaklı ID'si bir dize olmalı.",
+        "required": "Alacaklı ID'si gerekli.",
+        "uuid": "Alacaklı ID'si geçerli bir UUID olmalı."
+      },
+      "debtor_id": {
+        "string": "Borçlu ID'si bir dize olmalı.",
+        "required": "Borçlu ID'si gerekli.",
+        "uuid": "Borçlu ID'si geçerli bir UUID olmalı."
+      },
+      "amount": {
+        "number": "Miktar bir sayı olmalı.",
+        "positive": "Miktar pozitif olmalı.",
+        "required": "Miktar gerekli."
+      }
+    }
+  },
+  "expenses": {
+    "validation": {
+      "user_id": {
+        "uuid": "Kullanıcı ID'si geçerli bir UUID olmalı.",
+        "required": "Kullanıcı ID'si gerekli."
+      },
+      "amount": {
+        "number": "Miktar bir sayı olmalı.",
+        "min": "Miktar en az 0.01 olmalı.",
+        "required": "Miktar gerekli."
+      },
+      "description": {
+        "string": "Açıklama bir dize olmalı.",
+        "required": "Açıklama gerekli."
+      },
+      "group_id": {
+        "uuid": "Grup ID'si geçerli bir UUID olmalı.",
+        "required": "Grup ID'si gerekli."
+      },
+      "category": {
+        "enum": "Kategori geçerli bir değer olmalı.",
+        "required": "Kategori gerekli."
+      },
+      "date": {
+        "date": "Tarih geçerli bir tarih olmalı.",
+        "required": "Tarih gerekli."
+      },
+      "debtor_shares": {
+        "object": "Borçlu payları bir nesne olmalı.",
+        "required": "Borçlu payları gerekli."
+      },
+      "debtor_shares_array": {
+        "array": "Borçlu payları bir dizi olmalı.",
+        "required": "Borçlu payları gerekli."
+      }
+    }
+  },
+  "friends": {
+    "validation": {
+      "receiver_user_id": {
+        "string": "Alıcı kullanıcı ID'si bir dize olmalı.",
+        "required": "Alıcı kullanıcı ID'si gerekli."
+      },
+      "friend_request_id": {
+        "string": "Arkadaşlık isteği ID'si bir dize olmalı.",
+        "required": "Arkadaşlık isteği ID'si gerekli."
+      }
+    },
+    "errors": {
+      "cannot_send_to_self": "Kendinize arkadaşlık isteği gönderemezsiniz",
+      "request_already_exists": "Arkadaşlık isteği zaten mevcut",
+      "already_friends": "Kullanıcılar zaten arkadaş",
+      "request_not_found": "Arkadaşlık isteği bulunamadı"
+    }
+  },
+  "group_members": {
+    "validation": {
+      "group_id": {
+        "string": "Grup ID'si bir dize olmalı.",
+        "required": "Grup ID'si gerekli."
+      },
+      "user_id": {
+        "string": "Kullanıcı ID'si bir dize olmalı.",
+        "required": "Kullanıcı ID'si gerekli."
+      }
+    },
+    "errors": {
+      "cannot_add_to_personal": "Kullanıcılar bu endpoint aracılığıyla kişisel gruplara eklenemez. Kişisel gruplar otomatik olarak tam olarak 2 üye ile oluşturulur.",
+      "user_already_in_group": "Kullanıcı zaten grupta veya henüz üyeliği onaylamamış",
+      "user_rejected_request": "Kullanıcı isteği reddetti",
+      "group_not_found": "Grup bulunamadı",
+      "user_not_found": "Kullanıcı bulunamadı",
+      "not_group_admin": "Bu grubun yöneticisi değilsiniz",
+      "cannot_remove_from_personal": "Kullanıcılar kişisel gruplardan çıkarılamaz. Kişisel gruplar tam olarak 2 üyeye sahip olacak şekilde tasarlanmıştır.",
+      "user_not_in_group": "Kullanıcı grupta değil",
+      "user_involved_in_expenses": "Kullanıcı grup harcamalarında veya borçlarında yer alıyor ve çıkarılamaz."
+    }
+  },
+  "groups": {
+    "validation": {
+      "name": {
+        "string": "İsim bir dize olmalı.",
+        "required": "İsim gerekli.",
+        "max_length": "İsim 50 karakterden fazla olamaz."
+      },
+      "description": {
+        "string": "Açıklama bir dize olmalı.",
+        "required": "Açıklama gerekli."
+      },
+      "start_date": {
+        "date": "Başlangıç tarihi geçerli bir tarih olmalı.",
+        "required": "Başlangıç tarihi gerekli."
+      },
+      "end_date": {
+        "date": "Bitiş tarihi geçerli bir tarih olmalı.",
+        "required": "Bitiş tarihi gerekli."
+      },
+      "is_personal": {
+        "boolean": "is_personal bir boolean değer olmalı.",
+        "required": "is_personal gerekli."
+      },
+      "user_id": {
+        "string": "Kullanıcı ID'si bir dize olmalı.",
+        "required": "Kullanıcı ID'si gerekli.",
+        "uuid": "Kullanıcı ID'si geçerli bir UUID olmalı."
+      },
+      "group_id": {
+        "string": "Grup ID'si bir dize olmalı.",
+        "required": "Grup ID'si gerekli.",
+        "uuid": "Grup ID'si geçerli bir UUID olmalı."
+      }
+    },
+    "errors": {
+      "user_not_found": "Kullanıcı bulunamadı",
+      "cannot_create_with_self": "Kişisel grup kendinizle oluşturulamaz",
+      "personal_group_exists": "Bu kullanıcılar arasında kişisel grup zaten mevcut",
+      "not_group_admin": "Bu grubun yöneticisi değilsiniz",
+      "cannot_finish_with_debts": "Ödenmemiş borçlar varken grup tamamlanamaz",
+      "can_only_delete_finished": "Bir grubu yalnızca tamamlandığında silebilirsiniz. Düzenlerken grup ayarlarında tamamlayabilirsiniz",
+      "cannot_delete_with_debts": "Ödenmemiş borçlar varken grup silinemez",
+      "group_not_found": "Grup bulunamadı",
+      "members_not_defined": "Grup üyeleri düzgün tanımlanmamış",
+      "user_not_in_group": "Kullanıcı grupta değil"
+    }
+  },
+  "summary": {
+    "validation": {
+      "settler_user_id": {
+        "required": "Hesap kapatıcı kullanıcı ID'si gerekli.",
+        "string": "Hesap kapatıcı kullanıcı ID'si bir dize olmalı."
+      }
+    }
+  },
+  "user": {
+    "validation": {
+      "name": {
+        "string": "İsim bir dize olmalı.",
+        "required": "İsim gerekli."
+      },
+      "email": {
+        "string": "E-posta bir dize olmalı.",
+        "email": "Geçersiz e-posta formatı.",
+        "required": "E-posta gerekli."
+      },
+      "is_two_factor_enabled": {
+        "boolean": "İki faktörlü kimlik doğrulama bir boolean değer olmalı."
+      },
+      "language": {
+        "required": "Dil gerekli.",
+        "enum": "Dil şunlardan biri olmalı: EN, UK, DE, ES, FR, CS, PL, TR, HI, ZH."
+      }
+    }
+  },
+  "errors": {
+    "notification_not_found": "Bildirim bulunamadı",
+    "user_not_found": "Kullanıcı bulunamadı",
+    "invalid_language": "Geçersiz dil"
+  }
+}

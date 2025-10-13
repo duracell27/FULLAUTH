@@ -13,6 +13,7 @@ import {
 	Res,
 	UseGuards
 } from '@nestjs/common'
+import { I18nService } from 'nestjs-i18n'
 import { AuthService } from './auth.service'
 import { RegisterDto } from './dto/register.dto'
 import { Request, Response } from 'express'
@@ -27,7 +28,8 @@ export class AuthController {
 	public constructor(
 		private readonly authService: AuthService,
 		private readonly providerService: ProviderService,
-		private readonly configService: ConfigService
+		private readonly configService: ConfigService,
+		private readonly i18n: I18nService
 	) {}
 
 	@Recaptcha()
@@ -53,7 +55,9 @@ export class AuthController {
 		@Query('code') code: string
 	) {
 		if (!code) {
-			throw new BadRequestException('Code is required')
+			throw new BadRequestException(
+				this.i18n.t('auth.oauth.code_required')
+			)
 		}
 
 		await this.authService.extractProfileFromCode(req, provider, code)

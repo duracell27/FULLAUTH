@@ -6,6 +6,7 @@ import { UserService } from '@/user/user.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { GroupEntity, GroupMemberStatus, GroupRole, User } from '@prisma/client'
 import { NotificationsService } from '@/notifications/notifications.service'
+import { I18nService } from 'nestjs-i18n'
 
 type PartialGroup = Pick<
 	GroupEntity,
@@ -28,7 +29,8 @@ export class GroupMembersService {
 		private readonly mailService: MailService,
 		private readonly groupService: GroupsService,
 		private readonly friendsService: FriendsService,
-		private readonly notificationsService: NotificationsService
+		private readonly notificationsService: NotificationsService,
+		private readonly i18n: I18nService
 	) {}
 
 	public async getUserGroups(
@@ -286,8 +288,15 @@ export class GroupMembersService {
 					await this.notificationsService.create({
 						userId: admin.userId,
 						type: 'GROUP_INVITATION',
-						title: 'Group invitation accepted',
-						message: `${user.displayName} accepted the invitation to join the group "${groupName}"`,
+						title: this.i18n.t(
+							'group_members.notifications.invitation_accepted.title'
+						),
+						message: this.i18n.t(
+							'group_members.notifications.invitation_accepted.message',
+							{
+								args: { userName: user.displayName, groupName }
+							}
+						),
 						relatedGroupId: groupId,
 						relatedUserId: userId,
 						metadata: { groupName, userName: user.displayName }
@@ -333,8 +342,15 @@ export class GroupMembersService {
 					await this.notificationsService.create({
 						userId: admin.userId,
 						type: 'GROUP_INVITATION',
-						title: 'Group invitation rejected',
-						message: `${user.displayName} rejected the invitation to join the group "${groupName}"`,
+						title: this.i18n.t(
+							'group_members.notifications.invitation_rejected.title'
+						),
+						message: this.i18n.t(
+							'group_members.notifications.invitation_rejected.message',
+							{
+								args: { userName: user.displayName, groupName }
+							}
+						),
 						relatedGroupId: groupId,
 						relatedUserId: userId,
 						metadata: { groupName, userName: user.displayName }
@@ -357,7 +373,7 @@ export class GroupMembersService {
 
 		if (group?.isPersonal) {
 			throw new BadRequestException(
-				'Cannot add users to personal groups through this endpoint. Personal groups are created automatically with exactly 2 members.'
+				this.i18n.t('group_members.errors.cannot_add_to_personal')
 			)
 		}
 
@@ -373,18 +389,22 @@ export class GroupMembersService {
 			isRequestExist?.status === GroupMemberStatus.ACCEPTED
 		) {
 			throw new BadRequestException(
-				'User is already in the group or has not yet confirmed membership'
+				this.i18n.t('group_members.errors.user_already_in_group')
 			)
 		}
 
 		if (isRequestExist?.status === GroupMemberStatus.REJECTED) {
-			throw new BadRequestException('User has rejected the request')
+			throw new BadRequestException(
+				this.i18n.t('group_members.errors.user_rejected_request')
+			)
 		}
 
 		const isGroupExsist = await this.groupService.isGroupExsist(groupId)
 
 		if (!isGroupExsist) {
-			throw new BadRequestException('Group not found')
+			throw new BadRequestException(
+				this.i18n.t('group_members.errors.group_not_found')
+			)
 		}
 		const groupName = await this.groupService.getGroupName(groupId)
 
@@ -392,7 +412,9 @@ export class GroupMembersService {
 		const isUserExist = !!user
 
 		if (!isUserExist) {
-			throw new BadRequestException('User not found')
+			throw new BadRequestException(
+				this.i18n.t('group_members.errors.user_not_found')
+			)
 		}
 
 		const isGroupAdmin = await this.isUserAdminOfGroup(
@@ -401,7 +423,9 @@ export class GroupMembersService {
 		)
 
 		if (!isGroupAdmin) {
-			throw new BadRequestException('You are not admin of this group')
+			throw new BadRequestException(
+				this.i18n.t('group_members.errors.not_group_admin')
+			)
 		}
 
 		const isUserFriends = await this.friendsService.isUsersFriends(
@@ -463,7 +487,7 @@ export class GroupMembersService {
 
 		if (group?.isPersonal) {
 			throw new BadRequestException(
-				'Cannot remove users from personal groups. Personal groups are designed to have exactly 2 members.'
+				this.i18n.t('group_members.errors.cannot_remove_from_personal')
 			)
 		}
 
@@ -475,13 +499,17 @@ export class GroupMembersService {
 		})
 
 		if (!isRequestExist) {
-			throw new BadRequestException('User is not in the group')
+			throw new BadRequestException(
+				this.i18n.t('group_members.errors.user_not_in_group')
+			)
 		}
 
 		const isGroupExsist = await this.groupService.isGroupExsist(groupId)
 
 		if (!isGroupExsist) {
-			throw new BadRequestException('Group not found')
+			throw new BadRequestException(
+				this.i18n.t('group_members.errors.group_not_found')
+			)
 		}
 
 		const groupName = await this.groupService.getGroupName(groupId)
@@ -489,7 +517,9 @@ export class GroupMembersService {
 		const isUserExist = await this.userService.isUserExist(recieverUserId)
 
 		if (!isUserExist) {
-			throw new BadRequestException('User not found')
+			throw new BadRequestException(
+				this.i18n.t('group_members.errors.user_not_found')
+			)
 		}
 
 		// Перевірка, чи користувач задіяний у розрахунках групи
@@ -512,7 +542,7 @@ export class GroupMembersService {
 
 		if (isPayer || isDebtorOrCreditor) {
 			throw new BadRequestException(
-				'User is involved in group expenses or debts and cannot be removed.'
+				this.i18n.t('group_members.errors.user_involved_in_expenses')
 			)
 		}
 
@@ -522,7 +552,9 @@ export class GroupMembersService {
 		)
 
 		if (!isGroupAdmin) {
-			throw new BadRequestException('You are not admin of this group')
+			throw new BadRequestException(
+				this.i18n.t('group_members.errors.not_group_admin')
+			)
 		}
 
 		// Отримуємо ім'я користувача, який видаляє

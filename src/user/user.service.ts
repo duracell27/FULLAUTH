@@ -1,12 +1,20 @@
 import { PrismaService } from '@/prisma/prisma.service'
-import { Injectable, NotFoundException } from '@nestjs/common'
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException
+} from '@nestjs/common'
+import { I18nService } from 'nestjs-i18n'
 import { AuthMethod } from '@prisma/client'
 import { hash } from 'argon2'
 import { UpdateUserDto } from './dto/update-user.dto'
 
 @Injectable()
 export class UserService {
-	public constructor(private readonly prismaService: PrismaService) {}
+	public constructor(
+		private readonly prismaService: PrismaService,
+		private readonly i18n: I18nService
+	) {}
 
 	public async findById(id: string) {
 		const user = await this.prismaService.user.findUnique({
@@ -19,7 +27,7 @@ export class UserService {
 		})
 
 		if (!user) {
-			throw new NotFoundException('User not found')
+			throw new NotFoundException(this.i18n.t('errors.user_not_found'))
 		}
 
 		return user
@@ -39,7 +47,7 @@ export class UserService {
 		})
 
 		if (!user) {
-			throw new NotFoundException('User not found')
+			throw new NotFoundException(this.i18n.t('errors.user_not_found'))
 		}
 
 		return user
@@ -113,6 +121,55 @@ export class UserService {
 				displayName: dto.name,
 				email: dto.email,
 				isTwoFactorEnabled: dto.isTwoFactorEnabled
+			}
+		})
+
+		return updatedUser
+	}
+
+	public async updateLanguage(
+		userId: string,
+		language:
+			| 'EN'
+			| 'UK'
+			| 'DE'
+			| 'ES'
+			| 'FR'
+			| 'CS'
+			| 'PL'
+			| 'TR'
+			| 'HI'
+			| 'ZH'
+	) {
+		const validLanguages = [
+			'EN',
+			'UK',
+			'DE',
+			'ES',
+			'FR',
+			'CS',
+			'PL',
+			'TR',
+			'HI',
+			'ZH'
+		]
+		if (!validLanguages.includes(language)) {
+			throw new BadRequestException(
+				this.i18n.t('errors.invalid_language')
+			)
+		}
+		const user = await this.findById(userId)
+
+		if (!user) {
+			throw new NotFoundException(this.i18n.t('errors.user_not_found'))
+		}
+
+		const updatedUser = await this.prismaService.user.update({
+			where: {
+				id: user.id
+			},
+			data: {
+				language: language
 			}
 		})
 

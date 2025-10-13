@@ -1,8 +1,8 @@
 import { IsString, IsNotEmpty, IsUUID } from 'class-validator'
 
 export class CreatePersonalGroupDto {
-	@IsString()
-	@IsNotEmpty({ message: 'User ID is required' })
-	@IsUUID(4, { message: 'User ID must be a valid UUID' })
+	@IsString({ message: 'groups.validation.user_id.string' })
+	@IsNotEmpty({ message: 'groups.validation.user_id.required' })
+	@IsUUID(4, { message: 'groups.validation.user_id.uuid' })
 	userId: string
 }

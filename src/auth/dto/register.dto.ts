@@ -9,29 +9,29 @@ import {
 import { IsPasswordsMatchingConstraint } from '@/libs/common/decorators/is-passwords-matching-constraint.decorator'
 
 export class RegisterDto {
-	@IsString({ message: 'Name must be a string.' })
-	@IsNotEmpty({ message: 'Name is required.' })
+	@IsString({ message: 'validation.name.string' })
+	@IsNotEmpty({ message: 'validation.name.required' })
 	name: string
 
-	@IsString({ message: 'Email must be a string.' })
-	@IsEmail({}, { message: 'Invalid email format.' })
-	@IsNotEmpty({ message: 'Email is required.' })
+	@IsString({ message: 'validation.email.string' })
+	@IsEmail({}, { message: 'validation.email.invalid_format' })
+	@IsNotEmpty({ message: 'validation.email.required' })
 	email: string
 
-	@IsString({ message: 'Password must be a string.' })
-	@IsNotEmpty({ message: 'Password is required.' })
+	@IsString({ message: 'validation.password.string' })
+	@IsNotEmpty({ message: 'validation.password.required' })
 	@MinLength(6, {
-		message: 'Password must contain at least 6 characters.'
+		message: 'validation.password.min_length'
 	})
 	password: string
 
-	@IsString({ message: 'Confirmation password must be a string.' })
-	@IsNotEmpty({ message: 'Confirmation password field cannot be empty.' })
+	@IsString({ message: 'validation.password_repeat.string' })
+	@IsNotEmpty({ message: 'validation.password_repeat.required' })
 	@MinLength(6, {
-		message: 'Confirmation password must contain at least 6 characters.'
+		message: 'validation.password_repeat.min_length'
 	})
 	@Validate(IsPasswordsMatchingConstraint, {
-		message: 'Passwords do not match.'
+		message: 'validation.password_repeat.not_matching'
 	})
 	passwordRepeat: string
 }

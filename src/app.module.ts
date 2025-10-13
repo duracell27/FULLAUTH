@@ -1,5 +1,11 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import {
+	I18nModule,
+	QueryResolver,
+	HeaderResolver,
+	CookieResolver
+} from 'nestjs-i18n'
 import { IS_DEV_ENV } from '@/libs/common/utils/is-dev.util'
 import { PrismaModule } from './prisma/prisma.module'
 import { AuthModule } from './auth/auth.module'
@@ -16,12 +22,26 @@ import { ExpensesModule } from './expenses/expenses.module'
 import { SummaryModule } from './summary/summary.module'
 import { DebtsModule } from './debts/debts.module'
 import { NotificationsModule } from './notifications/notifications.module'
+import { UserPreferredLanguageResolver } from './i18n/language.resolver'
 
 @Module({
 	imports: [
 		ConfigModule.forRoot({
 			isGlobal: true,
 			ignoreEnvFile: !IS_DEV_ENV
+		}),
+		I18nModule.forRoot({
+			fallbackLanguage: 'en',
+			loaderOptions: {
+				path: 'src/i18n/',
+				watch: true
+			},
+			resolvers: [
+				UserPreferredLanguageResolver,
+				{ use: QueryResolver, options: ['lang'] },
+				{ use: CookieResolver, options: ['lang'] },
+				HeaderResolver
+			]
 		}),
 		PrismaModule,
 		AuthModule,
@@ -38,6 +58,7 @@ import { NotificationsModule } from './notifications/notifications.module'
 		SummaryModule,
 		DebtsModule,
 		NotificationsModule
-	]
+	],
+	providers: [UserPreferredLanguageResolver]
 })
 export class AppModule {}

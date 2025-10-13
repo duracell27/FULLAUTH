@@ -4,6 +4,7 @@ import {
 	NotFoundException,
 	BadRequestException
 } from '@nestjs/common'
+import { I18nService } from 'nestjs-i18n'
 import {
 	GroupDebtPaymentDto,
 	DeleteGroupDebtPaymentDto
@@ -17,13 +18,16 @@ export class DebtsService {
 	public constructor(
 		private readonly prismaService: PrismaService,
 		private readonly groupMembersService: GroupMembersService,
-		private readonly notificationsService: NotificationsService
+		private readonly notificationsService: NotificationsService,
+		private readonly i18n: I18nService
 	) {}
 
 	async addDebtPay(dto: GroupDebtPaymentDto, userId: string) {
 		const amountLeft = dto.amount
 		if (amountLeft <= 0)
-			throw new BadRequestException('Amount must be positive')
+			throw new BadRequestException(
+				this.i18n.t('debts.payment.amount_positive')
+			)
 
 		const isUserGroupMember =
 			await this.groupMembersService.isUserGroupMember(
@@ -32,7 +36,9 @@ export class DebtsService {
 			)
 
 		if (!isUserGroupMember)
-			throw new BadRequestException('You are not a member of this group')
+			throw new BadRequestException(
+				this.i18n.t('debts.payment.not_group_member')
+			)
 
 		// Знаходимо всі борги користувача в групі зі статусом PENDING
 		const debts = await this.prismaService.debt.findMany({
@@ -48,12 +54,14 @@ export class DebtsService {
 		})
 
 		if (!debts.length)
-			throw new NotFoundException('No pending debts found in this group')
+			throw new NotFoundException(
+				this.i18n.t('debts.payment.no_pending_debts')
+			)
 
 		const sumOfDebts = debts.reduce((sum, debt) => sum + debt.remaining, 0)
 		if (sumOfDebts < amountLeft)
 			throw new BadRequestException(
-				'Amount is greater than the sum of all debts'
+				this.i18n.t('debts.payment.amount_too_large')
 			)
 
 		await this.prismaService.$transaction(async tx => {
@@ -92,8 +100,17 @@ export class DebtsService {
 						await this.notificationsService.create({
 							userId: debt.debtorId,
 							type: 'DEBT_SETTLED',
-							title: 'Debt settled',
-							message: `Your debt for "${expense.description}" has been settled`,
+							title: this.i18n.t(
+								'debts.notifications.debt_settled.title'
+							),
+							message: this.i18n.t(
+								'debts.notifications.debt_settled.message_debtor',
+								{
+									args: {
+										expenseDescription: expense.description
+									}
+								}
+							),
 							relatedDebtId: debt.id,
 							relatedGroupId: dto.groupId,
 							metadata: {
@@ -107,8 +124,17 @@ export class DebtsService {
 						await this.notificationsService.create({
 							userId: debt.creditorId,
 							type: 'DEBT_SETTLED',
-							title: 'Debt settled',
-							message: `Debt for "${expense.description}" has been settled`,
+							title: this.i18n.t(
+								'debts.notifications.debt_settled.title'
+							),
+							message: this.i18n.t(
+								'debts.notifications.debt_settled.message_creditor',
+								{
+									args: {
+										expenseDescription: expense.description
+									}
+								}
+							),
 							relatedDebtId: debt.id,
 							relatedGroupId: dto.groupId,
 							metadata: {
@@ -205,8 +231,18 @@ export class DebtsService {
 						await this.notificationsService.create({
 							userId: debt.debtorId,
 							type: 'DEBT_SETTLED',
-							title: 'Debt settled',
-							message: `Your debt for "${debt.expense.description}" has been settled`,
+							title: this.i18n.t(
+								'debts.notifications.debt_settled.title'
+							),
+							message: this.i18n.t(
+								'debts.notifications.debt_settled.message_debtor',
+								{
+									args: {
+										expenseDescription:
+											debt.expense.description
+									}
+								}
+							),
 							relatedDebtId: debt.id,
 							relatedGroupId: dto.groupId,
 							metadata: {
@@ -220,8 +256,18 @@ export class DebtsService {
 						await this.notificationsService.create({
 							userId: debt.creditorId,
 							type: 'DEBT_SETTLED',
-							title: 'Debt settled',
-							message: `Debt for "${debt.expense.description}" has been settled`,
+							title: this.i18n.t(
+								'debts.notifications.debt_settled.title'
+							),
+							message: this.i18n.t(
+								'debts.notifications.debt_settled.message_creditor',
+								{
+									args: {
+										expenseDescription:
+											debt.expense.description
+									}
+								}
+							),
 							relatedDebtId: debt.id,
 							relatedGroupId: dto.groupId,
 							metadata: {
@@ -242,7 +288,7 @@ export class DebtsService {
 		// Валідація DTO
 		if (!dto.groupId || !dto.creditorId || !dto.debtorId) {
 			throw new BadRequestException(
-				'Required fields for deleting debt payment are missing'
+				this.i18n.t('debts.payment.required_fields_missing')
 			)
 		}
 
@@ -253,7 +299,9 @@ export class DebtsService {
 			)
 
 		if (!isUserGroupMember)
-			throw new BadRequestException('You are not a member of this group')
+			throw new BadRequestException(
+				this.i18n.t('debts.payment.not_group_member')
+			)
 
 		// Знаходимо всі борги між цими користувачами в групі
 		const debts = await this.prismaService.debt.findMany({
@@ -281,13 +329,15 @@ export class DebtsService {
 
 		if (!debts.length)
 			throw new NotFoundException(
-				'No debts found between these users in this group'
+				this.i18n.t('debts.payment.no_debts_found')
 			)
 
 		// Перевіряємо чи є платежі для видалення
 		const hasPayments = debts.some(debt => debt.payments.length > 0)
 		if (!hasPayments)
-			throw new NotFoundException('No payments found to delete')
+			throw new NotFoundException(
+				this.i18n.t('debts.payment.no_payments_found')
+			)
 
 		await this.prismaService.$transaction(async tx => {
 			for (const debt of debts) {
@@ -329,8 +379,17 @@ export class DebtsService {
 						await this.notificationsService.create({
 							userId: debt.debtorId,
 							type: 'DEBT_CREATED',
-							title: 'Debt reactivated',
-							message: `Your debt for "${expense.description}" has been reactivated`,
+							title: this.i18n.t(
+								'debts.notifications.debt_reactivated.title'
+							),
+							message: this.i18n.t(
+								'debts.notifications.debt_reactivated.message_debtor',
+								{
+									args: {
+										expenseDescription: expense.description
+									}
+								}
+							),
 							relatedDebtId: debt.id,
 							relatedExpenseId: debt.expenseId,
 							metadata: {
@@ -344,8 +403,17 @@ export class DebtsService {
 						await this.notificationsService.create({
 							userId: debt.creditorId,
 							type: 'DEBT_CREATED',
-							title: 'Debt reactivated',
-							message: `Debt for "${expense.description}" has been reactivated`,
+							title: this.i18n.t(
+								'debts.notifications.debt_reactivated.title'
+							),
+							message: this.i18n.t(
+								'debts.notifications.debt_reactivated.message_creditor',
+								{
+									args: {
+										expenseDescription: expense.description
+									}
+								}
+							),
 							relatedDebtId: debt.id,
 							relatedExpenseId: debt.expenseId,
 							metadata: {

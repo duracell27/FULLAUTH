@@ -2,12 +2,14 @@ import { PrismaService } from '@/prisma/prisma.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { FriendStatus } from '@prisma/client'
 import { NotificationsService } from '../notifications/notifications.service'
+import { I18nService } from 'nestjs-i18n'
 
 @Injectable()
 export class FriendsService {
 	public constructor(
 		private readonly prismaService: PrismaService,
-		private readonly notificationsService: NotificationsService
+		private readonly notificationsService: NotificationsService,
+		private readonly i18n: I18nService
 	) {}
 	public async getUserFriends(userId: string) {
 		const friendsDocs = await this.prismaService.friendRequests.findMany({
@@ -56,7 +58,7 @@ export class FriendsService {
 	public async sendFriendRequest(receiverId: string, senderId: string) {
 		if (receiverId === senderId) {
 			throw new BadRequestException(
-				'You can not send a friend request to yourself'
+				this.i18n.t('friends.errors.cannot_send_to_self')
 			)
 		}
 		const isFrendRequestExists =
@@ -78,7 +80,9 @@ export class FriendsService {
 			})
 
 		if (isFrendRequestExists) {
-			throw new BadRequestException('Friend request already exists')
+			throw new BadRequestException(
+				this.i18n.t('friends.errors.request_already_exists')
+			)
 		}
 
 		// Check if users are already friends
@@ -101,7 +105,9 @@ export class FriendsService {
 			})
 
 		if (isAlreadyFriends) {
-			throw new BadRequestException('Users are already friends')
+			throw new BadRequestException(
+				this.i18n.t('friends.errors.already_friends')
+			)
 		}
 
 		const friendRequest = await this.prismaService.friendRequests.create({
@@ -142,7 +148,9 @@ export class FriendsService {
 			})
 
 		if (!isFriendRequestExists) {
-			throw new BadRequestException('Friend request not found')
+			throw new BadRequestException(
+				this.i18n.t('friends.errors.request_not_found')
+			)
 		}
 
 		await this.prismaService.friendRequests.update({
@@ -168,7 +176,9 @@ export class FriendsService {
 			})
 
 		if (!isFriendRequestExists) {
-			throw new BadRequestException('Friend request not found')
+			throw new BadRequestException(
+				this.i18n.t('friends.errors.request_not_found')
+			)
 		}
 
 		await this.prismaService.friendRequests.update({
@@ -203,7 +213,9 @@ export class FriendsService {
 			})
 
 		if (!isFriendRequestExists) {
-			throw new BadRequestException('Friend request not found')
+			throw new BadRequestException(
+				this.i18n.t('friends.errors.request_not_found')
+			)
 		}
 
 		await this.prismaService.friendRequests.delete({

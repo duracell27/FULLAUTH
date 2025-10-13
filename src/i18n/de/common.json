@@ -1,0 +1,278 @@
+{
+  "notifications": {
+    "friend_request": {
+      "title": "Neue Freundschaftsanfrage",
+      "message": "{{senderName}} hat Ihnen eine Freundschaftsanfrage gesendet"
+    },
+    "group_invitation": {
+      "title": "Gruppeneinladung",
+      "message": "{{inviterName}} hat Sie zur Gruppe \"{{groupName}}\" eingeladen"
+    },
+    "expense_added": {
+      "title": "Neue Ausgabe",
+      "message": "Neue Ausgabe \"{{expenseDescription}}\" zur Gruppe \"{{groupName}}\" für {{amount}} hinzugefügt"
+    },
+    "debt_created": {
+      "title_debtor": "Neue Schuld",
+      "title_creditor": "Neuer Kredit",
+      "message_debtor": "Sie schulden {{amount}} für die Ausgabe \"{{expenseDescription}}\"",
+      "message_creditor": "Sie erhalten {{amount}} für die Ausgabe \"{{expenseDescription}}\" zurück"
+    },
+    "user_removed_from_group": {
+      "title": "Aus Gruppe entfernt",
+      "message": "{{removerName}} hat Sie aus der Gruppe \"{{groupName}}\" entfernt"
+    },
+    "validation": {
+      "user_id": {
+        "required": "Benutzer-ID ist erforderlich.",
+        "uuid": "Benutzer-ID muss eine gültige UUID sein."
+      },
+      "type": {
+        "required": "Typ ist erforderlich.",
+        "enum": "Typ muss ein gültiger Benachrichtigungstyp sein."
+      },
+      "title": {
+        "required": "Titel ist erforderlich.",
+        "string": "Titel muss eine Zeichenkette sein."
+      },
+      "message": {
+        "required": "Nachricht ist erforderlich.",
+        "string": "Nachricht muss eine Zeichenkette sein."
+      },
+      "related_user_id": {
+        "uuid": "Verwandte Benutzer-ID muss eine gültige UUID sein."
+      },
+      "related_group_id": {
+        "uuid": "Verwandte Gruppen-ID muss eine gültige UUID sein."
+      },
+      "related_expense_id": {
+        "uuid": "Verwandte Ausgaben-ID muss eine gültige UUID sein."
+      },
+      "related_debt_id": {
+        "uuid": "Verwandte Schulden-ID muss eine gültige UUID sein."
+      }
+    }
+  },
+  "auth": {
+    "register": {
+      "success": "Erfolgreich registriert. Bitte überprüfen Sie Ihre E-Mail für den Bestätigungslink.",
+      "user_exists": "Benutzer mit dieser E-Mail existiert bereits"
+    },
+    "login": {
+      "user_not_found": "Benutzer nicht gefunden",
+      "invalid_password": "Ungültiges Passwort",
+      "email_not_verified": "E-Mail nicht verifiziert",
+      "two_factor_required": "Bitte geben Sie den Zwei-Faktor-Authentifizierungscode aus Ihrer E-Mail ein."
+    },
+    "oauth": {
+      "code_required": "Code ist erforderlich"
+    },
+    "session": {
+      "save_error": "Fehler beim Speichern der Sitzung",
+      "destroy_error": "Fehler beim Löschen der Sitzungsdaten."
+    }
+  },
+  "validation": {
+    "name": {
+      "string": "Name muss eine Zeichenkette sein.",
+      "required": "Name ist erforderlich."
+    },
+    "email": {
+      "string": "E-Mail muss eine Zeichenkette sein.",
+      "email": "Ungültiges E-Mail-Format.",
+      "required": "E-Mail ist erforderlich."
+    },
+    "password": {
+      "string": "Passwort muss eine Zeichenkette sein.",
+      "min_length": "Passwort muss mindestens 6 Zeichen lang sein.",
+      "required": "Passwort ist erforderlich."
+    },
+    "user_id": {
+      "string": "Benutzer-ID muss eine Zeichenkette sein.",
+      "required": "Benutzer-ID ist erforderlich.",
+      "uuid": "Benutzer-ID muss eine gültige UUID sein."
+    }
+  },
+  "debts": {
+    "validation": {
+      "group_id": {
+        "string": "Gruppen-ID muss eine Zeichenkette sein.",
+        "required": "Gruppen-ID ist erforderlich.",
+        "uuid": "Gruppen-ID muss eine gültige UUID sein."
+      },
+      "creditor_id": {
+        "string": "Gläubiger-ID muss eine Zeichenkette sein.",
+        "required": "Gläubiger-ID ist erforderlich.",
+        "uuid": "Gläubiger-ID muss eine gültige UUID sein."
+      },
+      "debtor_id": {
+        "string": "Schuldner-ID muss eine Zeichenkette sein.",
+        "required": "Schuldner-ID ist erforderlich.",
+        "uuid": "Schuldner-ID muss eine gültige UUID sein."
+      },
+      "amount": {
+        "number": "Betrag muss eine Zahl sein.",
+        "positive": "Betrag muss positiv sein.",
+        "required": "Betrag ist erforderlich."
+      }
+    }
+  },
+  "expenses": {
+    "validation": {
+      "user_id": {
+        "uuid": "Benutzer-ID muss eine gültige UUID sein.",
+        "required": "Benutzer-ID ist erforderlich."
+      },
+      "amount": {
+        "number": "Betrag muss eine Zahl sein.",
+        "min": "Betrag muss mindestens 0.01 sein.",
+        "required": "Betrag ist erforderlich."
+      },
+      "description": {
+        "string": "Beschreibung muss eine Zeichenkette sein.",
+        "required": "Beschreibung ist erforderlich."
+      },
+      "group_id": {
+        "uuid": "Gruppen-ID muss eine gültige UUID sein.",
+        "required": "Gruppen-ID ist erforderlich."
+      },
+      "category": {
+        "enum": "Kategorie muss ein gültiger Wert sein.",
+        "required": "Kategorie ist erforderlich."
+      },
+      "date": {
+        "date": "Datum muss ein gültiges Datum sein.",
+        "required": "Datum ist erforderlich."
+      },
+      "debtor_shares": {
+        "object": "Schuldneranteile müssen ein Objekt sein.",
+        "required": "Schuldneranteile sind erforderlich."
+      },
+      "debtor_shares_array": {
+        "array": "Schuldneranteile müssen ein Array sein.",
+        "required": "Schuldneranteile sind erforderlich."
+      }
+    }
+  },
+  "friends": {
+    "validation": {
+      "receiver_user_id": {
+        "string": "Empfänger-Benutzer-ID muss eine Zeichenkette sein.",
+        "required": "Empfänger-Benutzer-ID ist erforderlich."
+      },
+      "friend_request_id": {
+        "string": "Freundschaftsanfrage-ID muss eine Zeichenkette sein.",
+        "required": "Freundschaftsanfrage-ID ist erforderlich."
+      }
+    },
+    "errors": {
+      "cannot_send_to_self": "Sie können keine Freundschaftsanfrage an sich selbst senden",
+      "request_already_exists": "Freundschaftsanfrage existiert bereits",
+      "already_friends": "Benutzer sind bereits Freunde",
+      "request_not_found": "Freundschaftsanfrage nicht gefunden"
+    }
+  },
+  "group_members": {
+    "validation": {
+      "group_id": {
+        "string": "Gruppen-ID muss eine Zeichenkette sein.",
+        "required": "Gruppen-ID ist erforderlich."
+      },
+      "user_id": {
+        "string": "Benutzer-ID muss eine Zeichenkette sein.",
+        "required": "Benutzer-ID ist erforderlich."
+      }
+    },
+    "errors": {
+      "cannot_add_to_personal": "Benutzer können nicht über diesen Endpunkt zu persönlichen Gruppen hinzugefügt werden. Persönliche Gruppen werden automatisch mit genau 2 Mitgliedern erstellt.",
+      "user_already_in_group": "Benutzer ist bereits in der Gruppe oder hat die Mitgliedschaft noch nicht bestätigt",
+      "user_rejected_request": "Benutzer hat die Anfrage abgelehnt",
+      "group_not_found": "Gruppe nicht gefunden",
+      "user_not_found": "Benutzer nicht gefunden",
+      "not_group_admin": "Sie sind kein Administrator dieser Gruppe",
+      "cannot_remove_from_personal": "Benutzer können nicht aus persönlichen Gruppen entfernt werden. Persönliche Gruppen sind dafür konzipiert, genau 2 Mitglieder zu haben.",
+      "user_not_in_group": "Benutzer ist nicht in der Gruppe",
+      "user_involved_in_expenses": "Benutzer ist an Gruppenausgaben oder Schulden beteiligt und kann nicht entfernt werden."
+    }
+  },
+  "groups": {
+    "validation": {
+      "name": {
+        "string": "Name muss eine Zeichenkette sein.",
+        "required": "Name ist erforderlich.",
+        "max_length": "Name darf maximal 50 Zeichen lang sein."
+      },
+      "description": {
+        "string": "Beschreibung muss eine Zeichenkette sein.",
+        "required": "Beschreibung ist erforderlich."
+      },
+      "start_date": {
+        "date": "Startdatum muss ein gültiges Datum sein.",
+        "required": "Startdatum ist erforderlich."
+      },
+      "end_date": {
+        "date": "Enddatum muss ein gültiges Datum sein.",
+        "required": "Enddatum ist erforderlich."
+      },
+      "is_personal": {
+        "boolean": "is_personal muss ein boolescher Wert sein.",
+        "required": "is_personal ist erforderlich."
+      },
+      "user_id": {
+        "string": "Benutzer-ID muss eine Zeichenkette sein.",
+        "required": "Benutzer-ID ist erforderlich.",
+        "uuid": "Benutzer-ID muss eine gültige UUID sein."
+      },
+      "group_id": {
+        "string": "Gruppen-ID muss eine Zeichenkette sein.",
+        "required": "Gruppen-ID ist erforderlich.",
+        "uuid": "Gruppen-ID muss eine gültige UUID sein."
+      }
+    },
+    "errors": {
+      "user_not_found": "Benutzer nicht gefunden",
+      "cannot_create_with_self": "Persönliche Gruppe kann nicht mit sich selbst erstellt werden",
+      "personal_group_exists": "Persönliche Gruppe zwischen diesen Benutzern existiert bereits",
+      "not_group_admin": "Sie sind kein Administrator dieser Gruppe",
+      "cannot_finish_with_debts": "Gruppe kann nicht beendet werden, solange unbezahlte Schulden vorhanden sind",
+      "can_only_delete_finished": "Gruppe kann nur gelöscht werden, wenn sie beendet ist. Sie können sie in den Gruppeneinstellungen beim Bearbeiten beenden",
+      "cannot_delete_with_debts": "Gruppe kann nicht gelöscht werden, solange unbezahlte Schulden vorhanden sind",
+      "group_not_found": "Gruppe nicht gefunden",
+      "members_not_defined": "Gruppenmitglieder sind nicht ordnungsgemäß definiert",
+      "user_not_in_group": "Benutzer ist nicht in der Gruppe"
+    }
+  },
+  "summary": {
+    "validation": {
+      "settler_user_id": {
+        "required": "Regulierende Benutzer-ID ist erforderlich.",
+        "string": "Regulierende Benutzer-ID muss eine Zeichenkette sein."
+      }
+    }
+  },
+  "user": {
+    "validation": {
+      "name": {
+        "string": "Name muss eine Zeichenkette sein.",
+        "required": "Name ist erforderlich."
+      },
+      "email": {
+        "string": "E-Mail muss eine Zeichenkette sein.",
+        "email": "Ungültiges E-Mail-Format.",
+        "required": "E-Mail ist erforderlich."
+      },
+      "is_two_factor_enabled": {
+        "boolean": "Zwei-Faktor-Authentifizierung muss ein boolescher Wert sein."
+      },
+      "language": {
+        "required": "Sprache ist erforderlich.",
+        "enum": "Sprache muss eine von: en, uk, de sein."
+      }
+    }
+  },
+  "errors": {
+    "notification_not_found": "Benachrichtigung nicht gefunden",
+    "user_not_found": "Benutzer nicht gefunden",
+    "invalid_language": "Ungültige Sprache"
+  }
+}

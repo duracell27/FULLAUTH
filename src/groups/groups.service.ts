@@ -5,6 +5,7 @@ import { PrismaService } from '@/prisma/prisma.service'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
 import { GroupMemberStatus, GroupRole } from '@prisma/client'
 import { NotificationsService } from '../notifications/notifications.service'
+import { I18nService } from 'nestjs-i18n'
 
 type GroupWithMembers = {
 	id: string
@@ -50,7 +51,8 @@ type GroupWithMembers = {
 export class GroupsService {
 	public constructor(
 		private readonly prismaService: PrismaService,
-		private readonly notificationsService: NotificationsService
+		private readonly notificationsService: NotificationsService,
+		private readonly i18n: I18nService
 	) {}
 
 	public async createGroup(userId: string, dto: CreateGroupDto) {
@@ -84,13 +86,15 @@ export class GroupsService {
 		})
 
 		if (!invitedUser) {
-			throw new BadRequestException('User not found')
+			throw new BadRequestException(
+				this.i18n.t('groups.errors.user_not_found')
+			)
 		}
 
 		// Перевіряємо, чи не є це той самий користувач
 		if (userId === dto.userId) {
 			throw new BadRequestException(
-				'Cannot create personal group with yourself'
+				this.i18n.t('groups.errors.cannot_create_with_self')
 			)
 		}
 
@@ -121,7 +125,7 @@ export class GroupsService {
 			const memberIds = existingPersonalGroup.members.map(m => m.userId)
 			if (memberIds.includes(userId) && memberIds.includes(dto.userId)) {
 				throw new BadRequestException(
-					'Personal group already exists between these users'
+					this.i18n.t('groups.errors.personal_group_exists')
 				)
 			}
 		}
@@ -183,7 +187,9 @@ export class GroupsService {
 		})
 
 		if (!userGroupAdmin) {
-			throw new BadRequestException('You are not admin of this group')
+			throw new BadRequestException(
+				this.i18n.t('groups.errors.not_group_admin')
+			)
 		}
 
 		if (dto.isFinished === true) {
@@ -202,7 +208,7 @@ export class GroupsService {
 			const hasUnpaidDebts = allDebts.some(debt => debt.remaining > 0)
 			if (hasUnpaidDebts) {
 				throw new BadRequestException(
-					'Групу не можна завершити, поки є невиплачені борги'
+					this.i18n.t('groups.errors.cannot_finish_with_debts')
 				)
 			}
 		}
@@ -233,7 +239,9 @@ export class GroupsService {
 		})
 
 		if (!userGroupAdmin) {
-			throw new BadRequestException('You are not admin of this group')
+			throw new BadRequestException(
+				this.i18n.t('groups.errors.not_group_admin')
+			)
 		}
 
 		// Перевірка: групу можна видалити лише якщо вона завершена і немає невиплачених боргів
@@ -243,7 +251,7 @@ export class GroupsService {
 		})
 		if (!group?.isFinished) {
 			throw new BadRequestException(
-				'You can only delete a group if it is finished. You can finish it in the group settings when editing'
+				this.i18n.t('groups.errors.can_only_delete_finished')
 			)
 		}
 
@@ -260,7 +268,7 @@ export class GroupsService {
 		const hasUnpaidDebts = allDebts.some(debt => debt.remaining > 0)
 		if (hasUnpaidDebts) {
 			throw new BadRequestException(
-				'Group cannot be deleted while there are unpaid debts'
+				this.i18n.t('groups.errors.cannot_delete_with_debts')
 			)
 		}
 
@@ -362,20 +370,24 @@ export class GroupsService {
 
 		// Перевірка, чи існує група
 		if (!group) {
-			throw new BadRequestException('Group not found')
+			throw new BadRequestException(
+				this.i18n.t('groups.errors.group_not_found')
+			)
 		}
 
 		// Явна перевірка, чи members є масивом (хоча тип гарантує, що це масив)
 		if (!Array.isArray(group.members)) {
 			throw new BadRequestException(
-				'Group members are not properly defined'
+				this.i18n.t('groups.errors.members_not_defined')
 			)
 		}
 
 		// Перевірка, чи є користувач у групі
 		const isMember = group.members.some(member => member.userId === userId)
 		if (!isMember) {
-			throw new BadRequestException('User is not in the group')
+			throw new BadRequestException(
+				this.i18n.t('groups.errors.user_not_in_group')
+			)
 		}
 
 		// Обчислюємо баланс користувача для кожної витрати

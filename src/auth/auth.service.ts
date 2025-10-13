@@ -6,6 +6,7 @@ import {
 	NotFoundException,
 	UnauthorizedException
 } from '@nestjs/common'
+import { I18nService } from 'nestjs-i18n'
 import { RegisterDto } from './dto/register.dto'
 import { UserService } from '@/user/user.service'
 import { AuthMethod, User } from '@prisma/client'
@@ -26,13 +27,16 @@ export class AuthService {
 		private readonly providerService: ProviderService,
 		private readonly prismaService: PrismaService,
 		private readonly emailConfirmationService: EmailConfirmationService,
-		private readonly twoFactorAuthService: TwoFactorAuthService
+		private readonly twoFactorAuthService: TwoFactorAuthService,
+		private readonly i18n: I18nService
 	) {}
 
 	public async register(dto: RegisterDto) {
 		const isExists = await this.userService.findByEmail(dto.email)
 		if (isExists) {
-			throw new ConflictException('User with this email already exists')
+			throw new ConflictException(
+				this.i18n.t('auth.register.user_exists')
+			)
 		}
 
 		const newUser = await this.userService.create(
@@ -47,28 +51,33 @@ export class AuthService {
 		await this.emailConfirmationService.sendVerificationToken(newUser.email)
 
 		return {
-			message:
-				'Successfully registered. Please check your email for confirmation link.'
+			message: this.i18n.t('auth.register.success')
 		}
 	}
 
 	public async login(req: Request, dto: LoginDto) {
 		const user = await this.userService.findByEmail(dto.email)
 		if (!user || !user.password) {
-			throw new NotFoundException('User not found')
+			throw new NotFoundException(
+				this.i18n.t('auth.login.user_not_found')
+			)
 		}
 
 		const isValidPass = await verify(user.password, dto.password)
 
 		if (!isValidPass) {
-			throw new UnauthorizedException('Invalid password')
+			throw new UnauthorizedException(
+				this.i18n.t('auth.login.invalid_password')
+			)
 		}
 
 		if (!user.isVerified) {
 			await this.emailConfirmationService.sendVerificationToken(
 				user.email
 			)
-			throw new UnauthorizedException('Email not verified')
+			throw new UnauthorizedException(
+				this.i18n.t('auth.login.email_not_verified')
+			)
 		}
 
 		if (user.isTwoFactorEnabled) {
@@ -76,8 +85,7 @@ export class AuthService {
 				await this.twoFactorAuthService.sendTwoFacktorToken(user.email)
 
 				return {
-					message:
-						'Please enter the two-factor authentication code from your email.'
+					message: this.i18n.t('auth.login.two_factor_required')
 				}
 			}
 
@@ -161,24 +169,6 @@ export class AuthService {
 		}>
 	}
 
-	// public async logout(req: Request, res: Response): Promise<void> {
-	// 	return new Promise((resolve, reject) => {
-	// 		req.session.destroy(err => {
-	// 			if (err) {
-	// 				return reject(
-	// 					new InternalServerErrorException(
-	// 						'Error destroying session'
-	// 					)
-	// 				)
-	// 			}
-	// 			res.clearCookie(
-	// 				this.configService.getOrThrow<string>('SESSION_NAME')
-	// 			)
-	// 			resolve()
-	// 		})
-	// 	})
-	// }
-
 	public async logout(req: Request, res: Response): Promise<void> {
 		return new Promise((resolve, reject) => {
 			if (!req.session) {
@@ -189,7 +179,7 @@ export class AuthService {
 				if (err) {
 					return reject(
 						new InternalServerErrorException(
-							'Error destroying session data.'
+							this.i18n.t('auth.session.destroy_error')
 						)
 					)
 				}
@@ -201,12 +191,10 @@ export class AuthService {
 						'SESSION_DOMAIN'
 					),
 					path: this.configService.get<string>('SESSION_PATH', '/'), // Якщо у вас є SESSION_PATH, інакше '/'
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 					httpOnly: this.configService.getOrThrow<boolean>(
 						'SESSION_HTTP_ONLY',
 						{ infer: true }
 					), // infer: true для parseBoolean
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 					secure: this.configService.getOrThrow<boolean>(
 						'SESSION_SECURE',
 						{ infer: true }
@@ -228,125 +216,6 @@ export class AuthService {
 		})
 	}
 
-	// public async logout(req: Request, res: Response): Promise<void> {
-	// 	return new Promise((resolve, reject) => {
-	// 		if (!req.session) {
-	// 			return resolve() // Сесії немає, просто виходимо
-	// 		}
-
-	// 		req.session.destroy(err => {
-	// 			if (err) {
-	// 				return reject(
-	// 					new InternalServerErrorException(
-	// 						'Error destroying session data.'
-	// 					)
-	// 				)
-	// 			}
-
-	// 			const sessionName =
-	// 				this.configService.getOrThrow<string>('SESSION_NAME')
-	// 			const sessionDomain =
-	// 				this.configService.get<string>('SESSION_DOMAIN')
-
-	// 			// Для localhost краще не встановлювати domain
-	// 			const cookieOptions = {
-	// 				...(sessionDomain && sessionDomain !== 'localhost'
-	// 					? { domain: sessionDomain }
-	// 					: {}),
-	// 				path: this.configService.get<string>('SESSION_PATH', '/'),
-	// 				httpOnly: this.configService.getOrThrow<boolean>(
-	// 					'SESSION_HTTP_ONLY',
-	// 					{ infer: true }
-	// 				),
-	// 				secure: this.configService.getOrThrow<boolean>(
-	// 					'SESSION_SECURE',
-	// 					{ infer: true }
-	// 				),
-	// 				sameSite: this.configService.get<'lax' | 'strict' | 'none'>(
-	// 					'SESSION_SAMESITE',
-	// 					'lax'
-	// 				)
-	// 			}
-
-	// 			// Очищуємо cookie з точними налаштуваннями
-	// 			res.clearCookie(sessionName, cookieOptions)
-
-	// 			// АГРЕСИВНЕ ОЧИЩЕННЯ ДЛЯ SAFARI
-	// 			// Встановлюємо Set-Cookie заголовок вручну з минулою датою
-	// 			const pastDate = new Date(1970, 0, 1).toUTCString()
-	// 			const cookieString = `${sessionName}=; Path=${cookieOptions.path || '/'}; Expires=${pastDate}; HttpOnly${cookieOptions.secure ? '; Secure' : ''}${cookieOptions.sameSite ? `; SameSite=${cookieOptions.sameSite}` : ''}`
-
-	// 			res.setHeader('Set-Cookie', cookieString)
-
-	// 			// Альтернативно, очищуємо з різними комбінаціями параметрів
-	// 			res.clearCookie(sessionName, { path: '/' })
-	// 			res.clearCookie(sessionName, {
-	// 				path: cookieOptions.path || '/'
-	// 			})
-	// 			res.clearCookie(sessionName)
-
-	// 			resolve()
-	// 		})
-	// 	})
-	// }
-
-	//РОБОЧИЙ НА СЕРВЕРІ
-	// public async logout(req: Request, res: Response): Promise<void> {
-	// 	const session = req.session
-
-	// 	if (!session) {
-	// 		// Якщо сесії немає, нічого не робимо
-	// 		res.status(200).send()
-	// 		return
-	// 	}
-
-	// 	// Використовуємо проміс для асинхронного destroy
-	// 	return new Promise((resolve, reject) => {
-	// 		session.destroy(err => {
-	// 			if (err) {
-	// 				// Логуємо помилку на сервері для відладки
-	// 				console.error('Error destroying session:', err)
-	// 				return reject(
-	// 					new InternalServerErrorException(
-	// 						'Could not destroy session.'
-	// 					)
-	// 				)
-	// 			}
-
-	// 			// --- ЄДИНИЙ ПРАВИЛЬНИЙ СПОСІБ ОЧИЩЕННЯ COOKIE ---
-
-	// 			const sessionName =
-	// 				this.configService.getOrThrow<string>('SESSION_NAME')
-	// 			const sessionDomain =
-	// 				this.configService.getOrThrow<string>('SESSION_DOMAIN')
-
-	// 			// Збираємо всі необхідні опції
-	// 			const cookieOptions = {
-	// 				domain: sessionDomain,
-	// 				path: this.configService.get<string>('SESSION_PATH', '/'),
-	// 				httpOnly: this.configService.getOrThrow<boolean>(
-	// 					'SESSION_HTTP_ONLY',
-	// 					{ infer: true }
-	// 				),
-	// 				secure: this.configService.getOrThrow<boolean>(
-	// 					'SESSION_SECURE',
-	// 					{ infer: true }
-	// 				),
-	// 				sameSite: this.configService.get<'none'>(
-	// 					'SESSION_SAMESITE',
-	// 					'none'
-	// 				)
-	// 			}
-
-	// 			// Робимо один-єдиний виклик clearCookie з усіма правильними опціями
-	// 			res.clearCookie(sessionName, cookieOptions)
-
-	// 			// Просто завершуємо запит
-	// 			resolve()
-	// 		})
-	// 	})
-	// }
-
 	public async saveSession(req: Request, user: User) {
 		return new Promise((resolve, reject) => {
 			req.session.userId = user.id
@@ -354,7 +223,9 @@ export class AuthService {
 			req.session.save(err => {
 				if (err) {
 					return reject(
-						new InternalServerErrorException('Error saving session')
+						new InternalServerErrorException(
+							this.i18n.t('auth.session.save_error')
+						)
 					)
 				}
 				resolve({ user })

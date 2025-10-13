@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { I18nService } from 'nestjs-i18n'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateNotificationDto } from './dto/create-notification.dto'
 import { UpdateNotificationDto } from './dto/update-notification.dto'
@@ -7,7 +8,10 @@ import { NotificationType, Prisma } from '@prisma/client'
 
 @Injectable()
 export class NotificationsService {
-	constructor(private readonly prisma: PrismaService) {}
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly i18n: I18nService
+	) {}
 
 	async create(
 		createNotificationDto: CreateNotificationDto
@@ -54,7 +58,7 @@ export class NotificationsService {
 		})
 
 		if (!notification) {
-			throw new Error('Notification not found')
+			throw new Error(this.i18n.t('errors.notification_not_found'))
 		}
 
 		return this.mapToResponseDto(notification)
@@ -92,6 +96,14 @@ export class NotificationsService {
 	}
 
 	async remove(id: string): Promise<void> {
+		const existingNotification = await this.prisma.notification.findUnique({
+			where: { id }
+		})
+
+		if (!existingNotification) {
+			throw new Error(this.i18n.t('errors.notification_not_found'))
+		}
+
 		await this.prisma.notification.delete({
 			where: { id }
 		})
@@ -106,8 +118,10 @@ export class NotificationsService {
 		return this.create({
 			userId: receiverId,
 			type: NotificationType.FRIEND_REQUEST,
-			title: 'New friend request',
-			message: `${senderName} sent you a friend request`,
+			title: this.i18n.t('notifications.friend_request.title'),
+			message: this.i18n.t('notifications.friend_request.message', {
+				args: { senderName }
+			}),
 			relatedUserId: senderId,
 			metadata: { senderName }
 		})
@@ -122,8 +136,10 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.GROUP_INVITATION,
-			title: 'Group invitation',
-			message: `${inviterName} invited you to the group "${groupName}"`,
+			title: this.i18n.t('notifications.group_invitation.title'),
+			message: this.i18n.t('notifications.group_invitation.message', {
+				args: { inviterName, groupName }
+			}),
 			relatedGroupId: groupId,
 			metadata: { groupName, inviterName }
 		})
@@ -139,8 +155,10 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.EXPENSE_ADDED,
-			title: 'New expense',
-			message: `New expense "${expenseDescription}" added to the group "${groupName}" for ${amount}`,
+			title: this.i18n.t('notifications.expense_added.title'),
+			message: this.i18n.t('notifications.expense_added.message', {
+				args: { expenseDescription, groupName, amount }
+			}),
 			relatedExpenseId: expenseId,
 			metadata: { expenseDescription, groupName, amount }
 		})
@@ -153,15 +171,20 @@ export class NotificationsService {
 		amount: number,
 		isDebtor: boolean
 	): Promise<NotificationResponseDto> {
-		const message = isDebtor
-			? `You owe ${amount} for the expense "${expenseDescription}"`
-			: `You get back ${amount} for the expense "${expenseDescription}"`
+		const titleKey = isDebtor
+			? 'notifications.debt_created.title_debtor'
+			: 'notifications.debt_created.title_creditor'
+		const messageKey = isDebtor
+			? 'notifications.debt_created.message_debtor'
+			: 'notifications.debt_created.message_creditor'
 
 		return this.create({
 			userId,
 			type: NotificationType.DEBT_CREATED,
-			title: isDebtor ? 'New debt' : 'New credit',
-			message,
+			title: this.i18n.t(titleKey),
+			message: this.i18n.t(messageKey, {
+				args: { amount, expenseDescription }
+			}),
 			relatedDebtId: debtId,
 			metadata: { expenseDescription, amount, isDebtor }
 		})
@@ -176,8 +199,11 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.USER_REMOVED_FROM_GROUP,
-			title: 'Removed from group',
-			message: `${removerName} removed you from the group "${groupName}"`,
+			title: this.i18n.t('notifications.user_removed_from_group.title'),
+			message: this.i18n.t(
+				'notifications.user_removed_from_group.message',
+				{ args: { removerName, groupName } }
+			),
 			relatedGroupId: groupId,
 			metadata: { groupName, removerName }
 		})

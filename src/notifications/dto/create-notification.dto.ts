@@ -8,36 +8,44 @@ import {
 import { NotificationType } from '@prisma/client'
 
 export class CreateNotificationDto {
-	@IsNotEmpty()
-	@IsUUID()
+	@IsNotEmpty({ message: 'notifications.validation.user_id.required' })
+	@IsUUID(undefined, { message: 'notifications.validation.user_id.uuid' })
 	userId: string
 
-	@IsNotEmpty()
-	@IsEnum(NotificationType)
+	@IsNotEmpty({ message: 'notifications.validation.type.required' })
+	@IsEnum(NotificationType, { message: 'notifications.validation.type.enum' })
 	type: NotificationType
 
-	@IsNotEmpty()
-	@IsString()
+	@IsNotEmpty({ message: 'notifications.validation.title.required' })
+	@IsString({ message: 'notifications.validation.title.string' })
 	title: string
 
-	@IsNotEmpty()
-	@IsString()
+	@IsNotEmpty({ message: 'notifications.validation.message.required' })
+	@IsString({ message: 'notifications.validation.message.string' })
 	message: string
 
 	@IsOptional()
-	@IsUUID()
+	@IsUUID(undefined, {
+		message: 'notifications.validation.related_user_id.uuid'
+	})
 	relatedUserId?: string
 
 	@IsOptional()
-	@IsUUID()
+	@IsUUID(undefined, {
+		message: 'notifications.validation.related_group_id.uuid'
+	})
 	relatedGroupId?: string
 
 	@IsOptional()
-	@IsUUID()
+	@IsUUID(undefined, {
+		message: 'notifications.validation.related_expense_id.uuid'
+	})
 	relatedExpenseId?: string
 
 	@IsOptional()
-	@IsUUID()
+	@IsUUID(undefined, {
+		message: 'notifications.validation.related_debt_id.uuid'
+	})
 	relatedDebtId?: string
 
 	@IsOptional()

@@ -4,6 +4,7 @@ import {
 	Injectable,
 	NotFoundException
 } from '@nestjs/common'
+import { I18nService } from 'nestjs-i18n'
 import { CreateExpenseDto } from './dto/CreateExpense.dto'
 import { GroupMember, Prisma, SplitType } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
@@ -25,7 +26,8 @@ export class ExpensesService {
 	public constructor(
 		private readonly prismaService: PrismaService,
 		private readonly groupMembersService: GroupMembersService,
-		private readonly notificationsService: NotificationsService
+		private readonly notificationsService: NotificationsService,
+		private readonly i18n: I18nService
 	) {}
 
 	async addExpense(
@@ -36,7 +38,7 @@ export class ExpensesService {
 		const totalPaid = dto.payers.reduce((sum, p) => sum + p.amount, 0)
 		if (Math.abs(totalPaid - dto.amount) > 0.01) {
 			throw new BadRequestException(
-				'Сума платежів не збігається із загальною сумою витрати.'
+				this.i18n.t('expenses.validation.payments_sum_mismatch')
 			)
 		}
 
@@ -46,7 +48,9 @@ export class ExpensesService {
 				dto.groupId
 			)
 		if (!isUserGroupMember)
-			throw new BadRequestException('You are not a member of this group')
+			throw new BadRequestException(
+				this.i18n.t('expenses.validation.not_group_member')
+			)
 
 		const members = await this.prismaService.groupMember.findMany({
 			where: {
@@ -200,7 +204,7 @@ export class ExpensesService {
 		// Перевірка, чи є взагалі боржники
 		if (numDebtors === 0) {
 			throw new BadRequestException(
-				'Для поділу витрати необхідно вказати хоча б одного боржника.'
+				this.i18n.t('expenses.validation.no_debtors')
 			)
 		}
 
@@ -220,7 +224,9 @@ export class ExpensesService {
 				)
 				if (Math.abs(totalPercentage - 100) > 0.1) {
 					throw new BadRequestException(
-						'Сума відсотків для поділу має дорівнювати 100.'
+						this.i18n.t(
+							'expenses.validation.percentage_sum_invalid'
+						)
 					)
 				}
 				dto.debtors.forEach(d => {
@@ -238,7 +244,7 @@ export class ExpensesService {
 				)
 				if (Math.abs(totalCustomSum - dto.amount) > 0.01) {
 					throw new BadRequestException(
-						'Сума кастомних боргів не збігається із загальною сумою витрати.'
+						this.i18n.t('expenses.validation.custom_sum_mismatch')
 					)
 				}
 				dto.debtors.forEach(d => shares.set(d.userId, d.amount || 0))
@@ -253,7 +259,7 @@ export class ExpensesService {
 				)
 				if (totalShares <= 0) {
 					throw new BadRequestException(
-						'Загальна кількість часток для поділу має бути більшою за нуль.'
+						this.i18n.t('expenses.validation.shares_invalid')
 					)
 				}
 
@@ -274,7 +280,7 @@ export class ExpensesService {
 
 				if (totalExtraAmount > dto.amount) {
 					throw new BadRequestException(
-						'Сума екстра платежів не може перевищувати загальну суму витрати.'
+						this.i18n.t('expenses.validation.extra_amount_exceeds')
 					)
 				}
 
@@ -317,7 +323,7 @@ export class ExpensesService {
 			default:
 				// Обробка невідомого або непідтримуваного типу поділу.
 				throw new BadRequestException(
-					`Непідтримуваний тип поділу витрати.`
+					this.i18n.t('expenses.validation.unsupported_split_type')
 				)
 		}
 
@@ -329,7 +335,12 @@ export class ExpensesService {
 		if (Math.abs(calculatedTotal - dto.amount) > 0.01) {
 			// Ця помилка може виникнути через проблеми з округленням, вона важлива для цілісності даних
 			throw new BadRequestException(
-				`Кінцева розрахована сума боргів (${calculatedTotal.toFixed(2)}) не збігається із загальною сумою витрати (${dto.amount.toFixed(2)}).`
+				this.i18n.t('expenses.validation.calculated_sum_mismatch', {
+					args: {
+						calculatedTotal: calculatedTotal.toFixed(2),
+						totalAmount: dto.amount.toFixed(2)
+					}
+				})
 			)
 		}
 
@@ -399,7 +410,7 @@ export class ExpensesService {
 		// Крок 2: Якщо витрата не знайдена або у користувача немає доступу, кидаємо помилку
 		if (!expense) {
 			throw new NotFoundException(
-				'Expense not found or you do not have permission to view it.'
+				this.i18n.t('expenses.errors.not_found')
 			)
 		}
 
@@ -414,7 +425,9 @@ export class ExpensesService {
 		})
 
 		if (!expense) {
-			throw new NotFoundException('Expense not found.')
+			throw new NotFoundException(
+				this.i18n.t('expenses.errors.not_found_simple')
+			)
 		}
 
 		const isUserAdmin = await this.groupMembersService.isUserAdminOfGroup(
@@ -425,7 +438,7 @@ export class ExpensesService {
 
 		if (!isUserAdmin && !isCreator) {
 			throw new BadRequestException(
-				'You are not admin of this group or the creator of the expense'
+				this.i18n.t('expenses.errors.not_admin_or_creator')
 			)
 		}
 
@@ -439,7 +452,7 @@ export class ExpensesService {
 
 		if (paymentsCount > 0) {
 			throw new BadRequestException(
-				'Can not delete expense, because debts have been paid'
+				this.i18n.t('expenses.errors.cannot_delete_paid')
 			)
 		}
 
@@ -459,7 +472,9 @@ export class ExpensesService {
 		})
 
 		if (!expense) {
-			throw new NotFoundException('Expense not found.')
+			throw new NotFoundException(
+				this.i18n.t('expenses.errors.not_found_simple')
+			)
 		}
 
 		const isUserAdmin = await this.groupMembersService.isUserAdminOfGroup(
@@ -470,7 +485,7 @@ export class ExpensesService {
 
 		if (!isUserAdmin && !isCreator) {
 			throw new BadRequestException(
-				'You can not edit this expense because you are not admin of this group or the creator of the expense'
+				this.i18n.t('expenses.errors.cannot_edit')
 			)
 		}
 
@@ -488,7 +503,9 @@ export class ExpensesService {
 		})
 
 		if (!expense) {
-			throw new NotFoundException('Expense not found.')
+			throw new NotFoundException(
+				this.i18n.t('expenses.errors.not_found_simple')
+			)
 		}
 
 		const isUserAdmin = await this.groupMembersService.isUserAdminOfGroup(
@@ -499,7 +516,7 @@ export class ExpensesService {
 
 		if (!isUserAdmin && !isCreator) {
 			throw new BadRequestException(
-				'You can not edit this expense because you are not admin of this group or the creator of the expense'
+				this.i18n.t('expenses.errors.cannot_edit')
 			)
 		}
 
@@ -727,8 +744,16 @@ export class ExpensesService {
 				await this.notificationsService.create({
 					userId: debtData.debtorId,
 					type: 'DEBT_CREATED',
-					title: 'New debt',
-					message: `You owe ${debtData.amount} for the expense "${description}"`,
+					title: this.i18n.t('expenses.notifications.new_debt.title'),
+					message: this.i18n.t(
+						'expenses.notifications.new_debt.message',
+						{
+							args: {
+								amount: debtData.amount,
+								expenseDescription: description
+							}
+						}
+					),
 					relatedDebtId: expenseId, // Використовуємо expenseId як debtId, оскільки борг ще не має ID
 					relatedExpenseId: expenseId,
 					metadata: {
@@ -742,8 +767,18 @@ export class ExpensesService {
 				await this.notificationsService.create({
 					userId: debtData.creditorId,
 					type: 'DEBT_CREATED',
-					title: 'New credit',
-					message: `You get back ${debtData.amount} for the expense "${description}"`,
+					title: this.i18n.t(
+						'expenses.notifications.new_credit.title'
+					),
+					message: this.i18n.t(
+						'expenses.notifications.new_credit.message',
+						{
+							args: {
+								amount: debtData.amount,
+								expenseDescription: description
+							}
+						}
+					),
 					relatedDebtId: expenseId, // Використовуємо expenseId як debtId
 					relatedExpenseId: expenseId,
 					metadata: {
@@ -786,8 +821,16 @@ export class ExpensesService {
 				await this.notificationsService.create({
 					userId: debt.debtorId,
 					type: 'DEBT_CREATED',
-					title: 'New debt',
-					message: `You owe ${debt.amount} for the expense "${description}"`,
+					title: this.i18n.t('expenses.notifications.new_debt.title'),
+					message: this.i18n.t(
+						'expenses.notifications.new_debt.message',
+						{
+							args: {
+								amount: debt.amount,
+								expenseDescription: description
+							}
+						}
+					),
 					relatedDebtId: debt.id,
 					relatedExpenseId: debt.expenseId,
 					metadata: {
@@ -801,8 +844,18 @@ export class ExpensesService {
 				await this.notificationsService.create({
 					userId: debt.creditorId,
 					type: 'DEBT_CREATED',
-					title: 'New credit',
-					message: `You get back ${debt.amount} for the expense "${description}"`,
+					title: this.i18n.t(
+						'expenses.notifications.new_credit.title'
+					),
+					message: this.i18n.t(
+						'expenses.notifications.new_credit.message',
+						{
+							args: {
+								amount: debt.amount,
+								expenseDescription: description
+							}
+						}
+					),
 					relatedDebtId: debt.id,
 					relatedExpenseId: debt.expenseId,
 					metadata: {

@@ -1,0 +1,330 @@
+{
+  "notifications": {
+    "friend_request": {
+      "title": "Новий запит дружби",
+      "message": "{{senderName}} надіслав вам запит дружби"
+    },
+    "group_invitation": {
+      "title": "Запрошення до групи",
+      "message": "{{inviterName}} запросив вас до групи \"{{groupName}}\""
+    },
+    "expense_added": {
+      "title": "Нова витрата",
+      "message": "Нова витрата \"{{expenseDescription}}\" додана до групи \"{{groupName}}\" на суму {{amount}}"
+    },
+    "debt_created": {
+      "title_debtor": "Новий борг",
+      "title_creditor": "Новий кредит",
+      "message_debtor": "Ви заборгували {{amount}} за витрату \"{{expenseDescription}}\"",
+      "message_creditor": "Вам повертають {{amount}} за витрату \"{{expenseDescription}}\""
+    },
+    "user_removed_from_group": {
+      "title": "Видалено з групи",
+      "message": "{{removerName}} видалив вас з групи \"{{groupName}}\""
+    },
+    "validation": {
+      "user_id": {
+        "required": "ID користувача є обов'язковим.",
+        "uuid": "ID користувача має бути валідним UUID."
+      },
+      "type": {
+        "required": "Тип є обов'язковим.",
+        "enum": "Тип має бути валідним типом сповіщення."
+      },
+      "title": {
+        "required": "Заголовок є обов'язковим.",
+        "string": "Заголовок має бути рядком."
+      },
+      "message": {
+        "required": "Повідомлення є обов'язковим.",
+        "string": "Повідомлення має бути рядком."
+      },
+      "related_user_id": {
+        "uuid": "ID пов'язаного користувача має бути валідним UUID."
+      },
+      "related_group_id": {
+        "uuid": "ID пов'язаної групи має бути валідним UUID."
+      },
+      "related_expense_id": {
+        "uuid": "ID пов'язаної витрати має бути валідним UUID."
+      },
+      "related_debt_id": {
+        "uuid": "ID пов'язаного боргу має бути валідним UUID."
+      }
+    }
+  },
+  "auth": {
+    "register": {
+      "success": "Успішно зареєстровано. Перевірте свою пошту для підтвердження.",
+      "user_exists": "Користувач з таким email вже існує"
+    },
+    "login": {
+      "user_not_found": "Користувача не знайдено",
+      "invalid_password": "Невірний пароль",
+      "email_not_verified": "Email не підтверджено",
+      "two_factor_required": "Будь ласка, введіть код двофакторної аутентифікації з вашої пошти."
+    },
+    "oauth": {
+      "code_required": "Код є обов'язковим"
+    },
+    "session": {
+      "save_error": "Помилка збереження сесії",
+      "destroy_error": "Помилка видалення даних сесії."
+    }
+  },
+  "validation": {
+    "name": {
+      "string": "Ім'я має бути рядком.",
+      "required": "Ім'я є обов'язковим."
+    },
+    "email": {
+      "string": "Email має бути рядком.",
+      "invalid_format": "Некоректний формат email.",
+      "required": "Email є обов'язковим."
+    },
+    "password": {
+      "string": "Пароль має бути рядком.",
+      "required": "Пароль є обов'язковим.",
+      "min_length": "Пароль має містити не менше 6 символів."
+    },
+    "password_repeat": {
+      "string": "Підтвердження пароля має бути рядком.",
+      "required": "Поле підтвердження пароля не може бути порожнім.",
+      "min_length": "Підтвердження пароля має містити не менше 6 символів.",
+      "not_matching": "Паролі не співпадають."
+    },
+    "code": {
+      "string": "Код має бути рядком."
+    },
+    "group_id": {
+      "string": "ID групи має бути рядком.",
+      "required": "ID групи є обов'язковим.",
+      "uuid": "ID групи має бути валідним UUID."
+    },
+    "creditor_id": {
+      "string": "ID кредитора має бути рядком.",
+      "required": "ID кредитора є обов'язковим."
+    },
+    "debtor_id": {
+      "string": "ID боржника має бути рядком.",
+      "required": "ID боржника є обов'язковим."
+    },
+    "amount": {
+      "number": "Сума має бути числом.",
+      "positive": "Сума має бути позитивною."
+    },
+    "user_id": {
+      "uuid": "ID користувача має бути валідним UUID."
+    },
+    "description": {
+      "string": "Опис має бути рядком.",
+      "required": "Опис є обов'язковим."
+    },
+    "split_type": {
+      "enum": "Тип поділу має бути валідним значенням enum."
+    },
+    "photo_url": {
+      "string": "URL фото має бути рядком."
+    },
+    "date": {
+      "date": "Дата має бути валідною датою."
+    },
+    "form_data": {
+      "object": "Дані форми мають бути об'єктом."
+    },
+    "payers": {
+      "array": "Платники мають бути масивом."
+    },
+    "debtors": {
+      "array": "Боржники мають бути масивом."
+    },
+    "percentage": {
+      "number": "Відсоток має бути числом."
+    },
+    "shares": {
+      "number": "Частки мають бути числом."
+    },
+    "extra_amount": {
+      "number": "Екстра сума має бути числом."
+    }
+  },
+  "debts": {
+    "payment": {
+      "amount_positive": "Сума має бути позитивною",
+      "not_group_member": "Ви не є членом цієї групи",
+      "no_pending_debts": "Не знайдено боргів, що очікують на сплату в цій групі",
+      "amount_too_large": "Сума перевищує суму всіх боргів",
+      "required_fields_missing": "Відсутні обов'язкові поля для видалення платежу по боргу",
+      "no_debts_found": "Не знайдено боргів між цими користувачами в цій групі",
+      "no_payments_found": "Не знайдено платежів для видалення"
+    },
+    "notifications": {
+      "debt_settled": {
+        "title": "Борг вирішено",
+        "message_debtor": "Ваш борг за \"{{expenseDescription}}\" вирішено",
+        "message_creditor": "Борг за \"{{expenseDescription}}\" вирішено"
+      },
+      "debt_reactivated": {
+        "title": "Борг відновлено",
+        "message_debtor": "Ваш борг за \"{{expenseDescription}}\" відновлено",
+        "message_creditor": "Борг за \"{{expenseDescription}}\" відновлено"
+      }
+    }
+  },
+  "expenses": {
+    "validation": {
+      "payments_sum_mismatch": "Сума платежів не збігається із загальною сумою витрати.",
+      "not_group_member": "Ви не є членом цієї групи",
+      "no_debtors": "Для поділу витрати необхідно вказати хоча б одного боржника.",
+      "percentage_sum_invalid": "Сума відсотків для поділу має дорівнювати 100.",
+      "custom_sum_mismatch": "Сума кастомних боргів не збігається із загальною сумою витрати.",
+      "shares_invalid": "Загальна кількість часток для поділу має бути більшою за нуль.",
+      "extra_amount_exceeds": "Сума екстра платежів не може перевищувати загальну суму витрати.",
+      "unsupported_split_type": "Непідтримуваний тип поділу витрати.",
+      "calculated_sum_mismatch": "Кінцева розрахована сума боргів ({{calculatedTotal}}) не збігається із загальною сумою витрати ({{totalAmount}})."
+    },
+    "errors": {
+      "not_found": "Витрату не знайдено або у вас немає дозволу на її перегляд.",
+      "not_found_simple": "Витрату не знайдено.",
+      "not_admin_or_creator": "Ви не є адміністратором цієї групи або творцем витрати",
+      "cannot_delete_paid": "Неможливо видалити витрату, оскільки борги були сплачені",
+      "cannot_edit": "Ви не можете редагувати цю витрату, оскільки ви не є адміністратором групи або творцем витрати"
+    },
+    "notifications": {
+      "new_debt": {
+        "title": "Новий борг",
+        "message": "Ви заборгували {{amount}} за витрату \"{{expenseDescription}}\""
+      },
+      "new_credit": {
+        "title": "Новий кредит",
+        "message": "Вам повертають {{amount}} за витрату \"{{expenseDescription}}\""
+      }
+    }
+  },
+  "friends": {
+    "errors": {
+      "cannot_send_to_self": "Ви не можете надіслати запит на дружбу самому собі",
+      "request_already_exists": "Запит на дружбу вже існує",
+      "already_friends": "Користувачі вже є друзями",
+      "request_not_found": "Запит на дружбу не знайдено"
+    },
+    "validation": {
+      "receiver_user_id": {
+        "string": "ID отримувача має бути рядком.",
+        "required": "ID отримувача є обов'язковим."
+      },
+      "friend_request_id": {
+        "string": "ID запиту на дружбу має бути рядком.",
+        "required": "ID запиту на дружбу є обов'язковим."
+      }
+    }
+  },
+  "group_members": {
+    "errors": {
+      "cannot_add_to_personal": "Неможливо додати користувачів до персональних груп через цей ендпоінт. Персональні групи створюються автоматично з рівно 2 учасниками.",
+      "user_already_in_group": "Користувач вже в групі або ще не підтвердив членство",
+      "user_rejected_request": "Користувач відхилив запит",
+      "group_not_found": "Групу не знайдено",
+      "user_not_found": "Користувача не знайдено",
+      "not_group_admin": "Ви не є адміністратором цієї групи",
+      "cannot_remove_from_personal": "Неможливо видалити користувачів з персональних груп. Персональні групи призначені для рівно 2 учасників.",
+      "user_not_in_group": "Користувач не в групі",
+      "user_involved_in_expenses": "Користувач задіяний у витратах або боргах групи і не може бути видалений."
+    },
+    "notifications": {
+      "invitation_accepted": {
+        "title": "Запрошення в групу прийнято",
+        "message": "{{userName}} прийняв запрошення приєднатися до групи \"{{groupName}}\""
+      },
+      "invitation_rejected": {
+        "title": "Запрошення в групу відхилено",
+        "message": "{{userName}} відхилив запрошення приєднатися до групи \"{{groupName}}\""
+      }
+    },
+    "validation": {
+      "group_id": {
+        "string": "ID групи має бути рядком.",
+        "required": "ID групи є обов'язковим."
+      },
+      "user_id": {
+        "string": "ID користувача має бути рядком.",
+        "required": "ID користувача є обов'язковим."
+      }
+    }
+  },
+  "groups": {
+    "errors": {
+      "user_not_found": "Користувача не знайдено",
+      "cannot_create_with_self": "Неможливо створити персональну групу з самим собою",
+      "personal_group_exists": "Персональна група вже існує між цими користувачами",
+      "not_group_admin": "Ви не є адміністратором цієї групи",
+      "cannot_finish_with_debts": "Групу не можна завершити, поки є невиплачені борги",
+      "can_only_delete_finished": "Ви можете видалити групу лише якщо вона завершена. Ви можете завершити її в налаштуваннях групи при редагуванні",
+      "cannot_delete_with_debts": "Групу не можна видалити, поки є невиплачені борги",
+      "group_not_found": "Групу не знайдено",
+      "members_not_defined": "Учасники групи не визначені правильно",
+      "user_not_in_group": "Користувач не в групі"
+    },
+    "validation": {
+      "name": {
+        "string": "Назва має бути рядком.",
+        "required": "Назва є обов'язковою.",
+        "max_length": "Назва має бути менше 100 символів."
+      },
+      "avatar_url": {
+        "string": "URL аватара має бути рядком."
+      },
+      "event_date": {
+        "date": "Дата події має бути валідною датою."
+      },
+      "is_locked": {
+        "boolean": "Заблоковано має бути булевим значенням."
+      },
+      "is_finished": {
+        "boolean": "Завершено має бути булевим значенням."
+      },
+      "group_id": {
+        "string": "ID групи має бути рядком.",
+        "required": "ID групи є обов'язковим."
+      },
+      "user_id": {
+        "string": "ID користувача має бути рядком.",
+        "required": "ID користувача є обов'язковим.",
+        "uuid": "ID користувача має бути валідним UUID."
+      }
+    }
+  },
+  "summary": {
+    "validation": {
+      "settler_user_id": {
+        "required": "ID користувача для врегулювання є обов'язковим.",
+        "string": "ID користувача для врегулювання має бути рядком."
+      }
+    }
+  },
+  "user": {
+    "validation": {
+      "name": {
+        "string": "Ім'я має бути рядком.",
+        "required": "Ім'я є обов'язковим."
+      },
+      "email": {
+        "string": "Email має бути рядком.",
+        "email": "Невірний формат email.",
+        "required": "Email є обов'язковим."
+      },
+      "is_two_factor_enabled": {
+        "boolean": "Двофакторна автентифікація має бути булевим значенням."
+      },
+      "language": {
+        "required": "Мова є обов'язковою.",
+        "enum": "Мова має бути однією з: EN, UK, DE, ES, FR, CS, PL, TR, HI, ZH."
+      }
+    }
+  },
+  "errors": {
+    "notification_not_found": "Сповіщення не знайдено",
+    "user_not_found": "Користувача не знайдено",
+    "invalid_language": "Невірна мова"
+  }
+}
