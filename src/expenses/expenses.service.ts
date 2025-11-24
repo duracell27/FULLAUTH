@@ -8,7 +8,6 @@ import { I18nService } from 'nestjs-i18n'
 import { CreateExpenseDto } from './dto/CreateExpense.dto'
 import { GroupMember, Prisma, SplitType } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
-import { InputJsonValue } from '@prisma/client/runtime/library'
 import { round2 } from '@/libs/common/utils/round2'
 import { NotificationsService } from '@/notifications/notifications.service'
 
@@ -489,7 +488,7 @@ export class ExpensesService {
 			)
 		}
 
-		return expense.formData as InputJsonValue
+		return expense.formData as Prisma.InputJsonValue
 	}
 
 	public async editExpense(
