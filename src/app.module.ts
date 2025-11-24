@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import * as path from 'path'
 import {
 	I18nModule,
 	QueryResolver,
@@ -33,7 +34,7 @@ import { UserPreferredLanguageResolver } from './i18n/language.resolver'
 		I18nModule.forRoot({
 			fallbackLanguage: 'en',
 			loaderOptions: {
-				path: 'src/i18n/',
+				path: path.join(__dirname, 'i18n/'),
 				watch: true
 			},
 			resolvers: [
