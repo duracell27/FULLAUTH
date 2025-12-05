@@ -5,7 +5,8 @@ import {
 	I18nModule,
 	QueryResolver,
 	HeaderResolver,
-	CookieResolver
+	CookieResolver,
+	I18nJsonLoader
 } from 'nestjs-i18n'
 import { IS_DEV_ENV } from '@/libs/common/utils/is-dev.util'
 import { PrismaModule } from './prisma/prisma.module'
@@ -29,12 +30,14 @@ import { UserPreferredLanguageResolver } from './i18n/language.resolver'
 	imports: [
 		ConfigModule.forRoot({
 			isGlobal: true,
-			ignoreEnvFile: !IS_DEV_ENV
+			ignoreEnvFile: !IS_DEV_ENV,
+			expandVariables: true
 		}),
 		I18nModule.forRoot({
 			fallbackLanguage: 'en',
+			loader: I18nJsonLoader,
 			loaderOptions: {
-				path: path.join(__dirname, 'i18n/'),
+				path: path.join(process.cwd(), 'src/i18n/'),
 				watch: true
 			},
 			resolvers: [

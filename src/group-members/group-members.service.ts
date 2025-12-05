@@ -6,7 +6,7 @@ import { UserService } from '@/user/user.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { GroupEntity, GroupMemberStatus, GroupRole, User } from '@prisma/client'
 import { NotificationsService } from '@/notifications/notifications.service'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
 
 type PartialGroup = Pick<
 	GroupEntity,
@@ -32,6 +32,13 @@ export class GroupMembersService {
 		private readonly notificationsService: NotificationsService,
 		private readonly i18n: I18nService
 	) {}
+
+	private t(key: string, options?: any) {
+		return this.i18n.translate(`common.${key}`, {
+			lang: I18nContext.current()?.lang,
+			...options
+		})
+	}
 
 	public async getUserGroups(
 		userId: string,
@@ -373,7 +380,7 @@ export class GroupMembersService {
 
 		if (group?.isPersonal) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.cannot_add_to_personal')
+				this.t('group_members.errors.cannot_add_to_personal')
 			)
 		}
 
@@ -389,13 +396,13 @@ export class GroupMembersService {
 			isRequestExist?.status === GroupMemberStatus.ACCEPTED
 		) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.user_already_in_group')
+				this.t('group_members.errors.user_already_in_group')
 			)
 		}
 
 		if (isRequestExist?.status === GroupMemberStatus.REJECTED) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.user_rejected_request')
+				this.t('group_members.errors.user_rejected_request')
 			)
 		}
 
@@ -403,7 +410,7 @@ export class GroupMembersService {
 
 		if (!isGroupExsist) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.group_not_found')
+				this.t('group_members.errors.group_not_found')
 			)
 		}
 		const groupName = await this.groupService.getGroupName(groupId)
@@ -413,7 +420,7 @@ export class GroupMembersService {
 
 		if (!isUserExist) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.user_not_found')
+				this.t('group_members.errors.user_not_found')
 			)
 		}
 
@@ -424,7 +431,7 @@ export class GroupMembersService {
 
 		if (!isGroupAdmin) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.not_group_admin')
+				this.t('group_members.errors.not_group_admin')
 			)
 		}
 
@@ -487,7 +494,7 @@ export class GroupMembersService {
 
 		if (group?.isPersonal) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.cannot_remove_from_personal')
+				this.t('group_members.errors.cannot_remove_from_personal')
 			)
 		}
 
@@ -500,7 +507,7 @@ export class GroupMembersService {
 
 		if (!isRequestExist) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.user_not_in_group')
+				this.t('group_members.errors.user_not_in_group')
 			)
 		}
 
@@ -508,7 +515,7 @@ export class GroupMembersService {
 
 		if (!isGroupExsist) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.group_not_found')
+				this.t('group_members.errors.group_not_found')
 			)
 		}
 
@@ -518,7 +525,7 @@ export class GroupMembersService {
 
 		if (!isUserExist) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.user_not_found')
+				this.t('group_members.errors.user_not_found')
 			)
 		}
 
@@ -542,7 +549,7 @@ export class GroupMembersService {
 
 		if (isPayer || isDebtorOrCreditor) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.user_involved_in_expenses')
+				this.t('group_members.errors.user_involved_in_expenses')
 			)
 		}
 
@@ -553,7 +560,7 @@ export class GroupMembersService {
 
 		if (!isGroupAdmin) {
 			throw new BadRequestException(
-				this.i18n.t('group_members.errors.not_group_admin')
+				this.t('group_members.errors.not_group_admin')
 			)
 		}
 
