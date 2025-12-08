@@ -737,7 +737,10 @@ export class ExpensesService {
 		}>
 	): Promise<void> {
 		try {
-			// Створюємо нотифікації для кожного боргу на основі даних
+			// Групуємо борги по кредитору для відправки одного сповіщення
+			const creditsByCreditor = new Map<string, number>()
+
+			// Створюємо нотифікації для кожного боржника окремо
 			for (const debtData of debtsData) {
 				// Нотифікація для боржника
 				await this.notificationsService.create({
@@ -753,7 +756,7 @@ export class ExpensesService {
 							}
 						}
 					),
-					relatedDebtId: expenseId, // Використовуємо expenseId як debtId, оскільки борг ще не має ID
+					relatedDebtId: expenseId,
 					relatedExpenseId: expenseId,
 					metadata: {
 						expenseDescription: description,
@@ -762,9 +765,22 @@ export class ExpensesService {
 					}
 				})
 
-				// Нотифікація для кредитора
+				// Акумулюємо суми для кредиторів
+				const currentAmount =
+					creditsByCreditor.get(debtData.creditorId) || 0
+				creditsByCreditor.set(
+					debtData.creditorId,
+					currentAmount + debtData.amount
+				)
+			}
+
+			// Створюємо одне сповіщення для кожного кредитора про всі його кредити
+			for (const [
+				creditorId,
+				totalAmount
+			] of creditsByCreditor.entries()) {
 				await this.notificationsService.create({
-					userId: debtData.creditorId,
+					userId: creditorId,
 					type: 'DEBT_CREATED',
 					title: this.i18n.t(
 						'expenses.notifications.new_credit.title'
@@ -773,16 +789,16 @@ export class ExpensesService {
 						'expenses.notifications.new_credit.message',
 						{
 							args: {
-								amount: debtData.amount,
+								amount: totalAmount,
 								expenseDescription: description
 							}
 						}
 					),
-					relatedDebtId: expenseId, // Використовуємо expenseId як debtId
+					relatedDebtId: expenseId,
 					relatedExpenseId: expenseId,
 					metadata: {
 						expenseDescription: description,
-						amount: debtData.amount,
+						amount: totalAmount,
 						isDebtor: false
 					}
 				})
@@ -814,7 +830,10 @@ export class ExpensesService {
 				}
 			})
 
-			// Створюємо нотифікації для кожного боргу
+			// Групуємо борги по кредитору для відправки одного сповіщення
+			const creditsByCreditor = new Map<string, number>()
+
+			// Створюємо нотифікації для кожного боржника окремо
 			for (const debt of debts) {
 				// Нотифікація для боржника
 				await this.notificationsService.create({
@@ -839,9 +858,22 @@ export class ExpensesService {
 					}
 				})
 
-				// Нотифікація для кредитора
+				// Акумулюємо суми для кредиторів
+				const currentAmount =
+					creditsByCreditor.get(debt.creditorId) || 0
+				creditsByCreditor.set(
+					debt.creditorId,
+					currentAmount + debt.amount
+				)
+			}
+
+			// Створюємо одне сповіщення для кожного кредитора про всі його кредити
+			for (const [
+				creditorId,
+				totalAmount
+			] of creditsByCreditor.entries()) {
 				await this.notificationsService.create({
-					userId: debt.creditorId,
+					userId: creditorId,
 					type: 'DEBT_CREATED',
 					title: this.i18n.t(
 						'expenses.notifications.new_credit.title'
@@ -850,16 +882,16 @@ export class ExpensesService {
 						'expenses.notifications.new_credit.message',
 						{
 							args: {
-								amount: debt.amount,
+								amount: totalAmount,
 								expenseDescription: description
 							}
 						}
 					),
-					relatedDebtId: debt.id,
-					relatedExpenseId: debt.expenseId,
+					relatedDebtId: expenseId,
+					relatedExpenseId: expenseId,
 					metadata: {
 						expenseDescription: description,
-						amount: debt.amount,
+						amount: totalAmount,
 						isDebtor: false
 					}
 				})

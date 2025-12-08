@@ -94,6 +94,29 @@
     }
   },
   "debts": {
+    "payment": {
+      "amount_positive": "Le montant doit être positif",
+      "not_group_member": "Vous n'êtes pas membre de ce groupe",
+      "no_pending_debts": "Aucune dette en attente trouvée dans ce groupe",
+      "amount_too_large": "Le montant est supérieur à la somme de toutes les dettes",
+      "required_fields_missing": "Champs requis pour supprimer le paiement de la dette manquants",
+      "no_debts_found": "Aucune dette trouvée entre ces utilisateurs dans ce groupe",
+      "no_payments_found": "Aucun paiement trouvé à supprimer"
+    },
+    "notifications": {
+      "debt_settled": {
+        "title": "Dette réglée",
+        "message_debtor": "Votre dette pour \"{{expenseDescription}}\" a été réglée",
+        "message_creditor": "La dette pour \"{{expenseDescription}}\" a été réglée",
+        "message_debtor_multiple": "{{count}} dettes réglées pour un total de {{totalAmount}}",
+        "message_creditor_multiple": "Vous avez reçu {{count}} paiements de dettes pour un total de {{totalAmount}}"
+      },
+      "debt_reactivated": {
+        "title": "Dette réactivée",
+        "message_debtor": "Votre dette pour \"{{expenseDescription}}\" a été réactivée",
+        "message_creditor": "La dette pour \"{{expenseDescription}}\" a été réactivée"
+      }
+    },
     "validation": {
       "group_id": {
         "string": "ID groupe doit être une chaîne.",

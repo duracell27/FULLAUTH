@@ -94,6 +94,29 @@
     }
   },
   "debts": {
+    "payment": {
+      "amount_positive": "Miktar pozitif olmalı",
+      "not_group_member": "Bu grubun üyesi değilsiniz",
+      "no_pending_debts": "Bu grupta bekleyen borç bulunamadı",
+      "amount_too_large": "Miktar tüm borçların toplamından büyük",
+      "required_fields_missing": "Borç ödemesini silmek için gerekli alanlar eksik",
+      "no_debts_found": "Bu gruptaki bu kullanıcılar arasında borç bulunamadı",
+      "no_payments_found": "Silinecek ödeme bulunamadı"
+    },
+    "notifications": {
+      "debt_settled": {
+        "title": "Borç ödendi",
+        "message_debtor": "\"{{expenseDescription}}\" için borcunuz ödendi",
+        "message_creditor": "\"{{expenseDescription}}\" için borç ödendi",
+        "message_debtor_multiple": "Toplam {{totalAmount}} için {{count}} borç ödendi",
+        "message_creditor_multiple": "Toplam {{totalAmount}} için {{count}} borç ödemesi aldınız"
+      },
+      "debt_reactivated": {
+        "title": "Borç yeniden etkinleştirildi",
+        "message_debtor": "\"{{expenseDescription}}\" için borcunuz yeniden etkinleştirildi",
+        "message_creditor": "\"{{expenseDescription}}\" için borç yeniden etkinleştirildi"
+      }
+    },
     "validation": {
       "group_id": {
         "string": "Grup ID'si bir dize olmalı.",

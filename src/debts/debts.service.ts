@@ -66,6 +66,11 @@ export class DebtsService {
 
 		await this.prismaService.$transaction(async tx => {
 			let localAmountLeft = amountLeft
+			const settledDebts: Array<{
+				debt: (typeof debts)[number]
+				expenseDescription: string
+			}> = []
+
 			for (const debt of debts) {
 				if (localAmountLeft <= 0) break
 				const payAmount = Math.min(debt.remaining, localAmountLeft)
@@ -87,66 +92,31 @@ export class DebtsService {
 					data: { remaining: newRemaining, status }
 				})
 
-				// Створюємо нотифікацію, якщо борг повністю вирішений
+				// Якщо борг повністю вирішений, додаємо його до списку
 				if (status === 'SETTLED') {
-					// Отримуємо деталі витрати для нотифікації
 					const expense = await tx.expense.findFirst({
 						where: { id: debt.expenseId },
 						select: { description: true }
 					})
 
 					if (expense) {
-						// Нотифікація для боржника
-						await this.notificationsService.create({
-							userId: debt.debtorId,
-							type: 'DEBT_SETTLED',
-							title: this.i18n.t(
-								'debts.notifications.debt_settled.title'
-							),
-							message: this.i18n.t(
-								'debts.notifications.debt_settled.message_debtor',
-								{
-									args: {
-										expenseDescription: expense.description
-									}
-								}
-							),
-							relatedDebtId: debt.id,
-							relatedGroupId: dto.groupId,
-							metadata: {
-								expenseDescription: expense.description,
-								amount: debt.amount,
-								isDebtor: true
-							}
-						})
-
-						// Нотифікація для кредитора
-						await this.notificationsService.create({
-							userId: debt.creditorId,
-							type: 'DEBT_SETTLED',
-							title: this.i18n.t(
-								'debts.notifications.debt_settled.title'
-							),
-							message: this.i18n.t(
-								'debts.notifications.debt_settled.message_creditor',
-								{
-									args: {
-										expenseDescription: expense.description
-									}
-								}
-							),
-							relatedDebtId: debt.id,
-							relatedGroupId: dto.groupId,
-							metadata: {
-								expenseDescription: expense.description,
-								amount: debt.amount,
-								isDebtor: false
-							}
+						settledDebts.push({
+							debt,
+							expenseDescription: expense.description
 						})
 					}
 				}
 
 				localAmountLeft -= payAmount
+			}
+
+			// Створюємо згруповані нотифікації для погашених боргів
+			if (settledDebts.length > 0) {
+				await this.createSettledDebtsNotifications(
+					settledDebts,
+					dto.groupId,
+					tx
+				)
 			}
 
 			const [directDebts, reverseDebts] = await Promise.all([
@@ -224,59 +194,20 @@ export class DebtsService {
 					data: { remaining: 0, status: DebtStatus.SETTLED }
 				})
 
-				// Створюємо нотифікації для всіх вирішених боргів
-				for (const debt of allDebts) {
-					if (debt.expense) {
-						// Нотифікація для боржника
-						await this.notificationsService.create({
-							userId: debt.debtorId,
-							type: 'DEBT_SETTLED',
-							title: this.i18n.t(
-								'debts.notifications.debt_settled.title'
-							),
-							message: this.i18n.t(
-								'debts.notifications.debt_settled.message_debtor',
-								{
-									args: {
-										expenseDescription:
-											debt.expense.description
-									}
-								}
-							),
-							relatedDebtId: debt.id,
-							relatedGroupId: dto.groupId,
-							metadata: {
-								expenseDescription: debt.expense.description,
-								amount: debt.amount,
-								isDebtor: true
-							}
-						})
+				// Створюємо згруповані нотифікації для всіх вирішених боргів
+				const settledDebtsData = allDebts
+					.filter(debt => debt.expense)
+					.map(debt => ({
+						debt,
+						expenseDescription: debt.expense!.description
+					}))
 
-						// Нотифікація для кредитора
-						await this.notificationsService.create({
-							userId: debt.creditorId,
-							type: 'DEBT_SETTLED',
-							title: this.i18n.t(
-								'debts.notifications.debt_settled.title'
-							),
-							message: this.i18n.t(
-								'debts.notifications.debt_settled.message_creditor',
-								{
-									args: {
-										expenseDescription:
-											debt.expense.description
-									}
-								}
-							),
-							relatedDebtId: debt.id,
-							relatedGroupId: dto.groupId,
-							metadata: {
-								expenseDescription: debt.expense.description,
-								amount: debt.amount,
-								isDebtor: false
-							}
-						})
-					}
+				if (settledDebtsData.length > 0) {
+					await this.createSettledDebtsNotifications(
+						settledDebtsData,
+						dto.groupId,
+						tx
+					)
 				}
 			}
 		})
@@ -428,5 +359,97 @@ export class DebtsService {
 		})
 
 		return true
+	}
+
+	private async createSettledDebtsNotifications(
+		settledDebts: Array<{
+			debt: {
+				id: string
+				debtorId: string
+				creditorId: string
+				amount: number
+			}
+			expenseDescription: string
+		}>,
+		groupId: string,
+		tx: any
+	): Promise<void> {
+		// Групуємо борги по боржниках та кредиторах
+		const debtorNotifications = new Map<
+			string,
+			{ totalAmount: number; count: number }
+		>()
+		const creditorNotifications = new Map<
+			string,
+			{ totalAmount: number; count: number }
+		>()
+
+		for (const { debt } of settledDebts) {
+			// Для боржників
+			const debtorData = debtorNotifications.get(debt.debtorId) || {
+				totalAmount: 0,
+				count: 0
+			}
+			debtorData.totalAmount += debt.amount
+			debtorData.count += 1
+			debtorNotifications.set(debt.debtorId, debtorData)
+
+			// Для кредиторів
+			const creditorData = creditorNotifications.get(debt.creditorId) || {
+				totalAmount: 0,
+				count: 0
+			}
+			creditorData.totalAmount += debt.amount
+			creditorData.count += 1
+			creditorNotifications.set(debt.creditorId, creditorData)
+		}
+
+		// Створюємо одне сповіщення для кожного боржника
+		for (const [debtorId, data] of debtorNotifications.entries()) {
+			await this.notificationsService.create({
+				userId: debtorId,
+				type: 'DEBT_SETTLED',
+				title: this.i18n.t('debts.notifications.debt_settled.title'),
+				message: this.i18n.t(
+					'debts.notifications.debt_settled.message_debtor_multiple',
+					{
+						args: {
+							count: data.count,
+							totalAmount: data.totalAmount
+						}
+					}
+				),
+				relatedGroupId: groupId,
+				metadata: {
+					totalAmount: data.totalAmount,
+					count: data.count,
+					isDebtor: true
+				}
+			})
+		}
+
+		// Створюємо одне сповіщення для кожного кредитора
+		for (const [creditorId, data] of creditorNotifications.entries()) {
+			await this.notificationsService.create({
+				userId: creditorId,
+				type: 'DEBT_SETTLED',
+				title: this.i18n.t('debts.notifications.debt_settled.title'),
+				message: this.i18n.t(
+					'debts.notifications.debt_settled.message_creditor_multiple',
+					{
+						args: {
+							count: data.count,
+							totalAmount: data.totalAmount
+						}
+					}
+				),
+				relatedGroupId: groupId,
+				metadata: {
+					totalAmount: data.totalAmount,
+					count: data.count,
+					isDebtor: false
+				}
+			})
+		}
 	}
 }

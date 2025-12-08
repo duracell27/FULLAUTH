@@ -73,6 +73,13 @@ export class NotificationsController {
 
 	@Authorization()
 	@HttpCode(HttpStatus.OK)
+	@Delete('all')
+	removeAll(@Authorized('id') userId: string) {
+		return this.notificationsService.removeAll(userId)
+	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
 	@Delete(':id')
 	remove(@Param('id') id: string) {
 		return this.notificationsService.remove(id)

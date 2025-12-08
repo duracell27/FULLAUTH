@@ -94,6 +94,29 @@
     }
   },
   "debts": {
+    "payment": {
+      "amount_positive": "La cantidad debe ser positiva",
+      "not_group_member": "No eres miembro de este grupo",
+      "no_pending_debts": "No se encontraron deudas pendientes en este grupo",
+      "amount_too_large": "La cantidad es mayor que la suma de todas las deudas",
+      "required_fields_missing": "Faltan campos obligatorios para eliminar el pago de deuda",
+      "no_debts_found": "No se encontraron deudas entre estos usuarios en este grupo",
+      "no_payments_found": "No se encontraron pagos para eliminar"
+    },
+    "notifications": {
+      "debt_settled": {
+        "title": "Deuda liquidada",
+        "message_debtor": "Tu deuda por \"{{expenseDescription}}\" ha sido liquidada",
+        "message_creditor": "La deuda por \"{{expenseDescription}}\" ha sido liquidada",
+        "message_debtor_multiple": "{{count}} deudas liquidadas por un total de {{totalAmount}}",
+        "message_creditor_multiple": "Has recibido {{count}} pagos de deudas por un total de {{totalAmount}}"
+      },
+      "debt_reactivated": {
+        "title": "Deuda reactivada",
+        "message_debtor": "Tu deuda por \"{{expenseDescription}}\" ha sido reactivada",
+        "message_creditor": "La deuda por \"{{expenseDescription}}\" ha sido reactivada"
+      }
+    },
     "validation": {
       "group_id": {
         "string": "ID de grupo debe ser una cadena.",

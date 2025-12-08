@@ -94,6 +94,29 @@
     }
   },
   "debts": {
+    "payment": {
+      "amount_positive": "राशि सकारात्मक होनी चाहिए",
+      "not_group_member": "आप इस समूह के सदस्य नहीं हैं",
+      "no_pending_debts": "इस समूह में कोई लंबित कर्ज नहीं मिला",
+      "amount_too_large": "राशि सभी कर्जों के योग से अधिक है",
+      "required_fields_missing": "कर्ज भुगतान हटाने के लिए आवश्यक फ़ील्ड गायब हैं",
+      "no_debts_found": "इस समूह में इन उपयोगकर्ताओं के बीच कोई कर्ज नहीं मिला",
+      "no_payments_found": "हटाने के लिए कोई भुगतान नहीं मिला"
+    },
+    "notifications": {
+      "debt_settled": {
+        "title": "कर्ज चुकाया गया",
+        "message_debtor": "\"{{expenseDescription}}\" के लिए आपका कर्ज चुकाया गया है",
+        "message_creditor": "\"{{expenseDescription}}\" के लिए कर्ज चुकाया गया है",
+        "message_debtor_multiple": "कुल {{totalAmount}} के लिए {{count}} कर्ज चुकाए गए",
+        "message_creditor_multiple": "आपने कुल {{totalAmount}} के लिए {{count}} कर्ज भुगतान प्राप्त किए"
+      },
+      "debt_reactivated": {
+        "title": "कर्ज पुनः सक्रिय किया गया",
+        "message_debtor": "\"{{expenseDescription}}\" के लिए आपका कर्ज पुनः सक्रिय किया गया है",
+        "message_creditor": "\"{{expenseDescription}}\" के लिए कर्ज पुनः सक्रिय किया गया है"
+      }
+    },
     "validation": {
       "group_id": {
         "string": "समूह ID एक स्ट्रिंग होना चाहिए।",

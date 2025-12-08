@@ -94,6 +94,29 @@
     }
   },
   "debts": {
+    "payment": {
+      "amount_positive": "金额必须为正数",
+      "not_group_member": "您不是此群组的成员",
+      "no_pending_debts": "此群组中未找到待处理的债务",
+      "amount_too_large": "金额大于所有债务的总和",
+      "required_fields_missing": "删除债务支付所需的字段缺失",
+      "no_debts_found": "在此群组中这些用户之间未找到债务",
+      "no_payments_found": "未找到要删除的付款"
+    },
+    "notifications": {
+      "debt_settled": {
+        "title": "债务已结清",
+        "message_debtor": "您对 \"{{expenseDescription}}\" 的债务已结清",
+        "message_creditor": "\"{{expenseDescription}}\" 的债务已结清",
+        "message_debtor_multiple": "已结清 {{count}} 笔债务，总计 {{totalAmount}}",
+        "message_creditor_multiple": "您已收到 {{count}} 笔债务付款，总计 {{totalAmount}}"
+      },
+      "debt_reactivated": {
+        "title": "债务已重新激活",
+        "message_debtor": "您对 \"{{expenseDescription}}\" 的债务已重新激活",
+        "message_creditor": "\"{{expenseDescription}}\" 的债务已重新激活"
+      }
+    },
     "validation": {
       "group_id": {
         "string": "群组ID必须是字符串。",

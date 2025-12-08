@@ -94,6 +94,29 @@
     }
   },
   "debts": {
+    "payment": {
+      "amount_positive": "Částka musí být kladná",
+      "not_group_member": "Nejste členem této skupiny",
+      "no_pending_debts": "V této skupině nebyly nalezeny žádné nevyřízené dluhy",
+      "amount_too_large": "Částka je větší než součet všech dluhů",
+      "required_fields_missing": "Chybí povinná pole pro odstranění platby dluhu",
+      "no_debts_found": "Mezi těmito uživateli v této skupině nebyly nalezeny žádné dluhy",
+      "no_payments_found": "Nebyly nalezeny žádné platby k odstranění"
+    },
+    "notifications": {
+      "debt_settled": {
+        "title": "Dluh vyrovnán",
+        "message_debtor": "Váš dluh za \"{{expenseDescription}}\" byl vyrovnán",
+        "message_creditor": "Dluh za \"{{expenseDescription}}\" byl vyrovnán",
+        "message_debtor_multiple": "{{count}} dluhů vyrovnáno v celkové výši {{totalAmount}}",
+        "message_creditor_multiple": "Obdrželi jste {{count}} plateb dluhů v celkové výši {{totalAmount}}"
+      },
+      "debt_reactivated": {
+        "title": "Dluh reaktivován",
+        "message_debtor": "Váš dluh za \"{{expenseDescription}}\" byl reaktivován",
+        "message_creditor": "Dluh za \"{{expenseDescription}}\" byl reaktivován"
+      }
+    },
     "validation": {
       "group_id": {
         "string": "ID skupiny musí být řetězec.",

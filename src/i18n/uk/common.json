@@ -162,7 +162,9 @@
       "debt_settled": {
         "title": "Борг вирішено",
         "message_debtor": "Ваш борг за \"{{expenseDescription}}\" вирішено",
-        "message_creditor": "Борг за \"{{expenseDescription}}\" вирішено"
+        "message_creditor": "Борг за \"{{expenseDescription}}\" вирішено",
+        "message_debtor_multiple": "Погашено {{count}} боргів на загальну суму {{totalAmount}}",
+        "message_creditor_multiple": "Вам погасили {{count}} боргів на загальну суму {{totalAmount}}"
       },
       "debt_reactivated": {
         "title": "Борг відновлено",

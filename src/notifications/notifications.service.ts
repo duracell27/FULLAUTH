@@ -109,6 +109,12 @@ export class NotificationsService {
 		})
 	}
 
+	async removeAll(userId: string): Promise<void> {
+		await this.prisma.notification.deleteMany({
+			where: { userId }
+		})
+	}
+
 	// Методи для створення специфічних нотифікацій
 	async createFriendRequestNotification(
 		receiverId: string,

@@ -162,7 +162,9 @@
       "debt_settled": {
         "title": "Debt settled",
         "message_debtor": "Your debt for \"{{expenseDescription}}\" has been settled",
-        "message_creditor": "Debt for \"{{expenseDescription}}\" has been settled"
+        "message_creditor": "Debt for \"{{expenseDescription}}\" has been settled",
+        "message_debtor_multiple": "Settled {{count}} debts for a total of {{totalAmount}}",
+        "message_creditor_multiple": "You received {{count}} debt payments for a total of {{totalAmount}}"
       },
       "debt_reactivated": {
         "title": "Debt reactivated",
