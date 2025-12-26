@@ -19,15 +19,7 @@ export class GroupDebtPaymentDto {
 }
 
 export class DeleteGroupDebtPaymentDto {
-	@IsString({ message: 'validation.group_id.string' })
-	@IsNotEmpty({ message: 'validation.group_id.required' })
-	groupId: string
-
-	@IsString({ message: 'validation.creditor_id.string' })
-	@IsNotEmpty({ message: 'validation.creditor_id.required' })
-	creditorId: string
-
-	@IsString({ message: 'validation.debtor_id.string' })
-	@IsNotEmpty({ message: 'validation.debtor_id.required' })
-	debtorId: string
+	@IsString({ message: 'validation.payment_id.string' })
+	@IsNotEmpty({ message: 'validation.payment_id.required' })
+	paymentId: string
 }

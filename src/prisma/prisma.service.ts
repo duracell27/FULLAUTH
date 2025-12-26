@@ -9,7 +9,6 @@ export class PrismaService
 	implements OnModuleInit, OnModuleDestroy
 {
 	constructor() {
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 		const pool = new Pool({ connectionString: process.env.POSTGRES_URL })
 		const adapter = new PrismaPg(pool)
 		super({ adapter })

@@ -69,4 +69,14 @@ export class GroupsController {
 	) {
 		return this.groupsService.deleteGroup(groupId, userId)
 	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Post('/:groupId/simplify-debts')
+	public async simplifyDebts(
+		@Param('groupId') groupId: string,
+		@Authorized('id') userId: string
+	) {
+		return this.groupsService.enableDebtSimplification(groupId, userId)
+	}
 }

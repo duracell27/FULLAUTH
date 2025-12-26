@@ -1,15 +1,18 @@
 import { PrismaService } from '@/prisma/prisma.service'
 import {
 	BadRequestException,
+	forwardRef,
+	Inject,
 	Injectable,
 	NotFoundException
 } from '@nestjs/common'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
 import { CreateExpenseDto } from './dto/CreateExpense.dto'
 import { GroupMember, Prisma, SplitType } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
 import { round2 } from '@/libs/common/utils/round2'
 import { NotificationsService } from '@/notifications/notifications.service'
+import { GroupsService } from '@/groups/groups.service'
 
 // Визначаємо тип, який буде повертатися
 // Він має ТОЧНО відповідати запиту в `findUnique` (включаючи `include`)
@@ -26,7 +29,9 @@ export class ExpensesService {
 		private readonly prismaService: PrismaService,
 		private readonly groupMembersService: GroupMembersService,
 		private readonly notificationsService: NotificationsService,
-		private readonly i18n: I18nService
+		private readonly i18n: I18nService,
+		@Inject(forwardRef(() => GroupsService))
+		private readonly groupsService: GroupsService
 	) {}
 
 	async addExpense(
@@ -37,7 +42,10 @@ export class ExpensesService {
 		const totalPaid = dto.payers.reduce((sum, p) => sum + p.amount, 0)
 		if (Math.abs(totalPaid - dto.amount) > 0.01) {
 			throw new BadRequestException(
-				this.i18n.t('expenses.validation.payments_sum_mismatch')
+				this.i18n.t(
+					'common.expenses.validation.payments_sum_mismatch',
+					{ lang: I18nContext.current()?.lang }
+				)
 			)
 		}
 
@@ -48,7 +56,9 @@ export class ExpensesService {
 			)
 		if (!isUserGroupMember)
 			throw new BadRequestException(
-				this.i18n.t('expenses.validation.not_group_member')
+				this.i18n.t('common.expenses.validation.not_group_member', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 
 		const members = await this.prismaService.groupMember.findMany({
@@ -60,7 +70,7 @@ export class ExpensesService {
 		// Перевірка, чи всі потрібні юзери і група існують (можна додати для надійності)
 
 		// --- Основна логіка в транзакції ---
-		return this.prismaService.$transaction(async tx => {
+		const expense = await this.prismaService.$transaction(async tx => {
 			// 1. Створюємо саму витрату
 			const expense = await tx.expense.create({
 				data: {
@@ -191,6 +201,24 @@ export class ExpensesService {
 
 			return result
 		})
+
+		// Отримуємо simplificationExpenseId групи
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: dto.groupId },
+			select: {
+				simplificationExpenseId: true
+			}
+		})
+
+		// Автоматично пересимпліфікуємо
+		if (group?.simplificationExpenseId) {
+			await this.groupsService.simplifyAllDebts(
+				dto.groupId,
+				group.simplificationExpenseId
+			)
+		}
+
+		return expense
 	}
 
 	private calculateDebtorShares(
@@ -203,7 +231,9 @@ export class ExpensesService {
 		// Перевірка, чи є взагалі боржники
 		if (numDebtors === 0) {
 			throw new BadRequestException(
-				this.i18n.t('expenses.validation.no_debtors')
+				this.i18n.t('common.expenses.validation.no_debtors', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -224,7 +254,10 @@ export class ExpensesService {
 				if (Math.abs(totalPercentage - 100) > 0.1) {
 					throw new BadRequestException(
 						this.i18n.t(
-							'expenses.validation.percentage_sum_invalid'
+							'expenses.validation.percentage_sum_invalid',
+							{
+								lang: I18nContext.current()?.lang
+							}
 						)
 					)
 				}
@@ -243,7 +276,10 @@ export class ExpensesService {
 				)
 				if (Math.abs(totalCustomSum - dto.amount) > 0.01) {
 					throw new BadRequestException(
-						this.i18n.t('expenses.validation.custom_sum_mismatch')
+						this.i18n.t(
+							'common.expenses.validation.custom_sum_mismatch',
+							{ lang: I18nContext.current()?.lang }
+						)
 					)
 				}
 				dto.debtors.forEach(d => shares.set(d.userId, d.amount || 0))
@@ -258,7 +294,10 @@ export class ExpensesService {
 				)
 				if (totalShares <= 0) {
 					throw new BadRequestException(
-						this.i18n.t('expenses.validation.shares_invalid')
+						this.i18n.t(
+							'common.expenses.validation.shares_invalid',
+							{ lang: I18nContext.current()?.lang }
+						)
 					)
 				}
 
@@ -279,7 +318,10 @@ export class ExpensesService {
 
 				if (totalExtraAmount > dto.amount) {
 					throw new BadRequestException(
-						this.i18n.t('expenses.validation.extra_amount_exceeds')
+						this.i18n.t(
+							'common.expenses.validation.extra_amount_exceeds',
+							{ lang: I18nContext.current()?.lang }
+						)
 					)
 				}
 
@@ -322,7 +364,10 @@ export class ExpensesService {
 			default:
 				// Обробка невідомого або непідтримуваного типу поділу.
 				throw new BadRequestException(
-					this.i18n.t('expenses.validation.unsupported_split_type')
+					this.i18n.t(
+						'common.expenses.validation.unsupported_split_type',
+						{ lang: I18nContext.current()?.lang }
+					)
 				)
 		}
 
@@ -334,12 +379,16 @@ export class ExpensesService {
 		if (Math.abs(calculatedTotal - dto.amount) > 0.01) {
 			// Ця помилка може виникнути через проблеми з округленням, вона важлива для цілісності даних
 			throw new BadRequestException(
-				this.i18n.t('expenses.validation.calculated_sum_mismatch', {
-					args: {
-						calculatedTotal: calculatedTotal.toFixed(2),
-						totalAmount: dto.amount.toFixed(2)
+				this.i18n.t(
+					'common.expenses.validation.calculated_sum_mismatch',
+					{
+						lang: I18nContext.current()?.lang,
+						args: {
+							calculatedTotal: calculatedTotal.toFixed(2),
+							totalAmount: dto.amount.toFixed(2)
+						}
 					}
-				})
+				)
 			)
 		}
 
@@ -383,8 +432,8 @@ export class ExpensesService {
 					}
 				},
 				// Включаємо борги (хто скільки винен)
+				// Показуємо всі борги (в т.ч. неактивні), щоб бачити оригінальний розподіл витрати
 				splits: {
-					where: { isActual: true },
 					include: {
 						// Для кожного боржника включаємо дані користувача
 						debtor: {
@@ -409,7 +458,9 @@ export class ExpensesService {
 		// Крок 2: Якщо витрата не знайдена або у користувача немає доступу, кидаємо помилку
 		if (!expense) {
 			throw new NotFoundException(
-				this.i18n.t('expenses.errors.not_found')
+				this.i18n.t('common.expenses.errors.not_found', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -425,7 +476,9 @@ export class ExpensesService {
 
 		if (!expense) {
 			throw new NotFoundException(
-				this.i18n.t('expenses.errors.not_found_simple')
+				this.i18n.t('common.expenses.errors.not_found_simple', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -437,29 +490,48 @@ export class ExpensesService {
 
 		if (!isUserAdmin && !isCreator) {
 			throw new BadRequestException(
-				this.i18n.t('expenses.errors.not_admin_or_creator')
+				this.i18n.t('common.expenses.errors.not_admin_or_creator', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
-		const paymentsCount = await this.prismaService.debtPayment.count({
-			where: {
-				debt: {
-					expenseId: expenseId
-				}
-			}
+		// Перевіряємо чи є платежі в групі
+		// Платежі тепер незалежні від витрат, тому дозволяємо видаляти витрати
+		// При наступній симпліфікації платежі будуть враховані
+		// (Стара логіка: не можна було видалити витрату якщо є платежі по боргах цієї витрати)
+
+		// Отримуємо simplificationExpenseId групи
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: expense.groupId },
+			select: { isSimplified: true, simplificationExpenseId: true }
 		})
 
-		if (paymentsCount > 0) {
-			throw new BadRequestException(
-				this.i18n.t('expenses.errors.cannot_delete_paid')
+		// Видаляємо витрату та всі пов'язані дані в транзакції
+		await this.prismaService.$transaction(async tx => {
+			// 1. Видаляємо всі борги пов'язані з витратою
+			await tx.debt.deleteMany({
+				where: { expenseId }
+			})
+
+			// 2. Видаляємо всі платежі пов'язані з витратою
+			await tx.expensePayment.deleteMany({
+				where: { expenseId }
+			})
+
+			// 3. Видаляємо саму витрату
+			await tx.expense.delete({
+				where: { id: expenseId }
+			})
+		})
+
+		// 4. Ресимпліфікуємо борги
+		if (group?.isSimplified && group.simplificationExpenseId) {
+			await this.groupsService.simplifyAllDebts(
+				expense.groupId,
+				group.simplificationExpenseId
 			)
 		}
-
-		await this.prismaService.expense.delete({
-			where: {
-				id: expenseId
-			}
-		})
 
 		return true
 	}
@@ -472,7 +544,9 @@ export class ExpensesService {
 
 		if (!expense) {
 			throw new NotFoundException(
-				this.i18n.t('expenses.errors.not_found_simple')
+				this.i18n.t('common.expenses.errors.not_found_simple', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -484,7 +558,9 @@ export class ExpensesService {
 
 		if (!isUserAdmin && !isCreator) {
 			throw new BadRequestException(
-				this.i18n.t('expenses.errors.cannot_edit')
+				this.i18n.t('common.expenses.errors.cannot_edit', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -503,7 +579,9 @@ export class ExpensesService {
 
 		if (!expense) {
 			throw new NotFoundException(
-				this.i18n.t('expenses.errors.not_found_simple')
+				this.i18n.t('common.expenses.errors.not_found_simple', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -515,7 +593,9 @@ export class ExpensesService {
 
 		if (!isUserAdmin && !isCreator) {
 			throw new BadRequestException(
-				this.i18n.t('expenses.errors.cannot_edit')
+				this.i18n.t('common.expenses.errors.cannot_edit', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -604,27 +684,19 @@ export class ExpensesService {
 					const key = `${debtor.userId}|${creditor.userId}`
 					const oldDebt = oldDebtsMap.get(key)
 					if (oldDebt) {
-						const paid = oldDebt.amount - oldDebt.remaining
-						const newRemaining = Math.max(
-							round2(paymentAmount) - paid,
-							0
-						)
+						// GroupPayment незалежні від боргів, тому не оновлюємо їх тут
+						// Просто оновлюємо борг з новою сумою
 						await tx.debt.update({
 							where: { id: oldDebt.id },
 							data: {
 								amount: round2(paymentAmount),
-								remaining: newRemaining,
-								status:
-									newRemaining === 0 ? 'SETTLED' : 'PENDING',
+								remaining: round2(paymentAmount),
+								status: 'PENDING',
 								percentage: originalDebtorData?.percentage,
 								shares: originalDebtorData?.shares,
 								extraAmount: originalDebtorData?.extraAmount,
 								isActual: true
 							}
-						})
-						await tx.debtPayment.updateMany({
-							where: { debtId: oldDebt.id },
-							data: { isActual: true }
 						})
 					} else {
 						await tx.debt.create({
@@ -649,29 +721,12 @@ export class ExpensesService {
 			}
 
 			// Старі борги, яких більше немає у новій схемі
+			// GroupPayment незалежні від боргів, тому просто видаляємо старі борги
+			// Платежі залишаться в GroupPayment і будуть враховані при симпліфікації
 			for (const oldDebt of oldDebts) {
 				const key = `${oldDebt.debtorId}|${oldDebt.creditorId}`
 				if (!processedDebts.has(key)) {
-					const payments = await tx.debtPayment.count({
-						where: { debtId: oldDebt.id }
-					})
-					if (payments > 0) {
-						await tx.debt.update({
-							where: { id: oldDebt.id },
-							data: {
-								remaining: 0,
-								status: 'SETTLED',
-								isActual: false
-							}
-						})
-						// ОНОВЛЮЄМО ВСІ ПЛАТЕЖІ ПО ЦЬОМУ БОРГУ
-						await tx.debtPayment.updateMany({
-							where: { debtId: oldDebt.id },
-							data: { isActual: false }
-						})
-					} else {
-						await tx.debt.delete({ where: { id: oldDebt.id } })
-					}
+					await tx.debt.delete({ where: { id: oldDebt.id } })
 				}
 			}
 		})
@@ -682,6 +737,22 @@ export class ExpensesService {
 			dto.groupId,
 			dto.description
 		)
+
+		// Отримуємо simplificationExpenseId групи
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: dto.groupId },
+			select: {
+				simplificationExpenseId: true
+			}
+		})
+
+		// Автоматично пересимпліфікуємо
+		if (group?.simplificationExpenseId) {
+			await this.groupsService.simplifyAllDebts(
+				dto.groupId,
+				group.simplificationExpenseId
+			)
+		}
 
 		return true
 	}
@@ -746,10 +817,14 @@ export class ExpensesService {
 				await this.notificationsService.create({
 					userId: debtData.debtorId,
 					type: 'DEBT_CREATED',
-					title: this.i18n.t('expenses.notifications.new_debt.title'),
+					title: this.i18n.t(
+						'common.expenses.notifications.new_debt.title',
+						{ lang: I18nContext.current()?.lang }
+					),
 					message: this.i18n.t(
 						'expenses.notifications.new_debt.message',
 						{
+							lang: I18nContext.current()?.lang,
 							args: {
 								amount: debtData.amount,
 								expenseDescription: description
@@ -783,11 +858,15 @@ export class ExpensesService {
 					userId: creditorId,
 					type: 'DEBT_CREATED',
 					title: this.i18n.t(
-						'expenses.notifications.new_credit.title'
+						'expenses.notifications.new_credit.title',
+						{
+							lang: I18nContext.current()?.lang
+						}
 					),
 					message: this.i18n.t(
 						'expenses.notifications.new_credit.message',
 						{
+							lang: I18nContext.current()?.lang,
 							args: {
 								amount: totalAmount,
 								expenseDescription: description
@@ -839,10 +918,14 @@ export class ExpensesService {
 				await this.notificationsService.create({
 					userId: debt.debtorId,
 					type: 'DEBT_CREATED',
-					title: this.i18n.t('expenses.notifications.new_debt.title'),
+					title: this.i18n.t(
+						'common.expenses.notifications.new_debt.title',
+						{ lang: I18nContext.current()?.lang }
+					),
 					message: this.i18n.t(
 						'expenses.notifications.new_debt.message',
 						{
+							lang: I18nContext.current()?.lang,
 							args: {
 								amount: debt.amount,
 								expenseDescription: description
@@ -876,11 +959,15 @@ export class ExpensesService {
 					userId: creditorId,
 					type: 'DEBT_CREATED',
 					title: this.i18n.t(
-						'expenses.notifications.new_credit.title'
+						'expenses.notifications.new_credit.title',
+						{
+							lang: I18nContext.current()?.lang
+						}
 					),
 					message: this.i18n.t(
 						'expenses.notifications.new_credit.message',
 						{
+							lang: I18nContext.current()?.lang,
 							args: {
 								amount: totalAmount,
 								expenseDescription: description

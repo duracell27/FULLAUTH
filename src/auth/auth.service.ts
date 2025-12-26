@@ -6,7 +6,7 @@ import {
 	NotFoundException,
 	UnauthorizedException
 } from '@nestjs/common'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
 import { RegisterDto } from './dto/register.dto'
 import { UserService } from '@/user/user.service'
 import { AuthMethod, User } from '@prisma/client'
@@ -35,7 +35,9 @@ export class AuthService {
 		const isExists = await this.userService.findByEmail(dto.email)
 		if (isExists) {
 			throw new ConflictException(
-				this.i18n.t('auth.register.user_exists')
+				this.i18n.t('common.auth.register.user_exists', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -51,7 +53,9 @@ export class AuthService {
 		await this.emailConfirmationService.sendVerificationToken(newUser.email)
 
 		return {
-			message: this.i18n.t('auth.register.success')
+			message: this.i18n.t('common.auth.register.success', {
+				lang: I18nContext.current()?.lang
+			})
 		}
 	}
 
@@ -59,7 +63,9 @@ export class AuthService {
 		const user = await this.userService.findByEmail(dto.email)
 		if (!user || !user.password) {
 			throw new NotFoundException(
-				this.i18n.t('auth.login.user_not_found')
+				this.i18n.t('common.auth.login.user_not_found', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -67,7 +73,9 @@ export class AuthService {
 
 		if (!isValidPass) {
 			throw new UnauthorizedException(
-				this.i18n.t('auth.login.invalid_password')
+				this.i18n.t('common.auth.login.invalid_password', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -76,7 +84,9 @@ export class AuthService {
 				user.email
 			)
 			throw new UnauthorizedException(
-				this.i18n.t('auth.login.email_not_verified')
+				this.i18n.t('common.auth.login.email_not_verified', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -85,7 +95,12 @@ export class AuthService {
 				await this.twoFactorAuthService.sendTwoFacktorToken(user.email)
 
 				return {
-					message: this.i18n.t('auth.login.two_factor_required')
+					message: this.i18n.t(
+						'common.auth.login.two_factor_required',
+						{
+							lang: I18nContext.current()?.lang
+						}
+					)
 				}
 			}
 
@@ -179,7 +194,9 @@ export class AuthService {
 				if (err) {
 					return reject(
 						new InternalServerErrorException(
-							this.i18n.t('auth.session.destroy_error')
+							this.i18n.t('common.auth.session.destroy_error', {
+								lang: I18nContext.current()?.lang
+							})
 						)
 					)
 				}
@@ -224,7 +241,9 @@ export class AuthService {
 				if (err) {
 					return reject(
 						new InternalServerErrorException(
-							this.i18n.t('auth.session.save_error')
+							this.i18n.t('common.auth.session.save_error', {
+								lang: I18nContext.current()?.lang
+							})
 						)
 					)
 				}

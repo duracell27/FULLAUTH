@@ -99,7 +99,7 @@ export class GroupMembersService {
 							isActual: true,
 							expense: { groupId: groupId }
 						},
-						_sum: { amount: true }
+						_sum: { remaining: true }
 					}
 				)
 				const totalOwedByUser = await this.prismaService.debt.aggregate(
@@ -109,12 +109,33 @@ export class GroupMembersService {
 							isActual: true,
 							expense: { groupId: groupId }
 						},
-						_sum: { amount: true }
+						_sum: { remaining: true }
 					}
 				)
+
+				// Враховуємо GroupPayment
+				const paymentsFrom =
+					await this.prismaService.groupPayment.aggregate({
+						where: {
+							groupId: groupId,
+							fromId: userId
+						},
+						_sum: { amount: true }
+					})
+				const paymentsTo =
+					await this.prismaService.groupPayment.aggregate({
+						where: {
+							groupId: groupId,
+							toId: userId
+						},
+						_sum: { amount: true }
+					})
+
 				const userBalance =
-					(totalOwedToUser._sum.amount || 0) -
-					(totalOwedByUser._sum.amount || 0)
+					(totalOwedToUser._sum.remaining || 0) -
+					(totalOwedByUser._sum.remaining || 0) +
+					(paymentsFrom._sum.amount || 0) -
+					(paymentsTo._sum.amount || 0)
 				const members: UserSafe[] = member.group.members.map(m => ({
 					id: m.user.id,
 					displayName: m.user.displayName,
@@ -194,7 +215,7 @@ export class GroupMembersService {
 							isActual: true,
 							expense: { groupId: groupId }
 						},
-						_sum: { amount: true }
+						_sum: { remaining: true }
 					}
 				)
 				const totalOwedByUser = await this.prismaService.debt.aggregate(
@@ -204,12 +225,33 @@ export class GroupMembersService {
 							isActual: true,
 							expense: { groupId: groupId }
 						},
-						_sum: { amount: true }
+						_sum: { remaining: true }
 					}
 				)
+
+				// Враховуємо GroupPayment
+				const paymentsFrom =
+					await this.prismaService.groupPayment.aggregate({
+						where: {
+							groupId: groupId,
+							fromId: userId
+						},
+						_sum: { amount: true }
+					})
+				const paymentsTo =
+					await this.prismaService.groupPayment.aggregate({
+						where: {
+							groupId: groupId,
+							toId: userId
+						},
+						_sum: { amount: true }
+					})
+
 				const userBalance =
-					(totalOwedToUser._sum.amount || 0) -
-					(totalOwedByUser._sum.amount || 0)
+					(totalOwedToUser._sum.remaining || 0) -
+					(totalOwedByUser._sum.remaining || 0) +
+					(paymentsFrom._sum.amount || 0) -
+					(paymentsTo._sum.amount || 0)
 				const members: UserSafe[] = member.group.members.map(m => ({
 					id: m.user.id,
 					displayName: m.user.displayName,

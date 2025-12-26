@@ -21,7 +21,7 @@ export class MailService {
 		userName: string
 	) {
 		const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
+
 		const html = await render(
 			GroupAddedNotificationTemplate({ domain, groupName, userName })
 		)
@@ -36,7 +36,7 @@ export class MailService {
 		userName: string
 	) {
 		const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
+
 		const html = await render(
 			GroupInvitationWithConfirmTemplate({ domain, groupName, userName })
 		)
@@ -47,7 +47,7 @@ export class MailService {
 
 	public async sendConfirmationEmail(email: string, token: string) {
 		const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
+
 		const html = await render(ConfirmationTemplate({ domain, token }))
 
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -56,7 +56,7 @@ export class MailService {
 
 	public async sendPasswordResetEmail(email: string, token: string) {
 		const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
+
 		const html = await render(ResetPasswordTemplate({ domain, token }))
 
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -64,7 +64,6 @@ export class MailService {
 	}
 
 	public async sendTwoFactorEmail(email: string, token: string) {
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
 		const html = await render(TwoFactorAuthTemplate({ token }))
 
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-return

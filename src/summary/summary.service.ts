@@ -35,53 +35,62 @@ export class SummaryService {
 			where: {
 				// Користувач є або боржником, або кредитором
 				OR: [{ debtorId: userId }, { creditorId: userId }],
-				// Можливо, ви захочете виключити врегульовані борги,
-				// але для загального балансу краще враховувати всю історію.
 				status: 'PENDING',
 				isActual: true
 			},
 			include: {
-				debtor: true, // Інформація про боржника
-				creditor: true, // Інформація про кредитора
+				debtor: true,
+				creditor: true,
 				expense: {
 					include: {
-						group: true // Інформація про групу, до якої належить витрата
+						group: true
 					}
 				}
 			}
 		})
 
-		// 2. Агрегуємо дані, щоб розрахувати баланси
+		// 2. Отримуємо всі платежі, пов'язані з користувачем
+		const payments = await this.prismaService.groupPayment.findMany({
+			where: {
+				OR: [{ fromId: userId }, { toId: userId }]
+			},
+			include: {
+				from: true,
+				to: true,
+				group: true
+			}
+		})
+
+		// 3. Агрегуємо дані, щоб розрахувати баланси
 		const balancesByUser = new Map<
 			string,
 			{
-				user: any // Замініть `any` на тип вашої моделі User
+				user: any
 				totalBalance: number
 				groups: Map<
 					string,
 					{
-						groupInfo: any // Замініть `any` на тип GroupEntity
+						groupInfo: any
 						balance: number
 					}
 				>
 			}
 		>()
 
+		// Обробляємо борги
 		for (const debt of debts) {
-			// Визначаємо, хто в цій транзакції "інший" користувач
 			const isDebtor = debt.debtorId === userId
 			const otherUser = isDebtor ? debt.creditor : debt.debtor
 
-			if (!otherUser) continue // Пропускаємо, якщо дані неповні
+			if (!otherUser) continue
 
-			// Розраховуємо суму для балансу.
-			// Якщо я боржник (isDebtor), мій баланс з іншим користувачем зменшується (стає негативним).
-			// Якщо я кредитор, мій баланс збільшується (стає позитивним).
+			// Якщо я боржник, мій баланс з іншим користувачем зменшується (негативний)
+			// Якщо я кредитор, мій баланс збільшується (позитивний)
 			const signedAmount = isDebtor ? -debt.remaining : debt.remaining
 
 			const group = debt.expense.group
 
-			// Ініціалізуємо запис для іншого користувача, якщо його ще немає
+			// Ініціалізуємо запис для іншого користувача
 			if (!balancesByUser.has(otherUser.id)) {
 				balancesByUser.set(otherUser.id, {
 					user: otherUser,
@@ -92,10 +101,10 @@ export class SummaryService {
 
 			const userBalance = balancesByUser.get(otherUser.id)!
 
-			// Оновлюємо загальний баланс з цим користувачем
+			// Оновлюємо загальний баланс
 			userBalance.totalBalance += signedAmount
 
-			// Ініціалізуємо запис для групи, якщо його ще немає
+			// Ініціалізуємо запис для групи
 			if (!userBalance.groups.has(group.id)) {
 				userBalance.groups.set(group.id, {
 					groupInfo: {
@@ -108,12 +117,49 @@ export class SummaryService {
 			}
 
 			const groupBalance = userBalance.groups.get(group.id)!
-
-			// Оновлюємо баланс у контексті конкретної групи
 			groupBalance.balance += signedAmount
 		}
 
-		// 3. Форматуємо результат у зручний для фронтенду масив
+		// Обробляємо платежі - віднімаємо їх від балансів
+		for (const payment of payments) {
+			const isFrom = payment.fromId === userId
+			const otherUser = isFrom ? payment.to : payment.from
+
+			if (!otherUser) continue
+
+			// Якщо я заплатив (fromId), то мій баланс з іншим користувачем збільшується
+			// Якщо мені заплатили (toId), то мій баланс зменшується
+			const signedAmount = isFrom ? payment.amount : -payment.amount
+
+			// Ініціалізуємо запис для іншого користувача, якщо потрібно
+			if (!balancesByUser.has(otherUser.id)) {
+				balancesByUser.set(otherUser.id, {
+					user: otherUser,
+					totalBalance: 0,
+					groups: new Map()
+				})
+			}
+
+			const userBalance = balancesByUser.get(otherUser.id)!
+			userBalance.totalBalance += signedAmount
+
+			// Оновлюємо баланс в групі
+			if (!userBalance.groups.has(payment.groupId)) {
+				userBalance.groups.set(payment.groupId, {
+					groupInfo: {
+						id: payment.group.id,
+						name: payment.group.name,
+						avatarUrl: payment.group.avatarUrl
+					},
+					balance: 0
+				})
+			}
+
+			const groupBalance = userBalance.groups.get(payment.groupId)!
+			groupBalance.balance += signedAmount
+		}
+
+		// 4. Форматуємо результат у зручний для фронтенду масив
 		const result: UserBalance[] = Array.from(balancesByUser.values()).map(
 			data => ({
 				user: {
@@ -133,38 +179,100 @@ export class SummaryService {
 		userId: string,
 		settlerUserId: string
 	): Promise<boolean> {
-		await this.prismaService.$transaction(async tx => {
-			// Знаходимо всі борги між цими двома користувачами
-			const debts = await tx.debt.findMany({
-				where: {
-					status: 'PENDING',
-					isActual: true,
-					OR: [
-						{ debtorId: userId, creditorId: settlerUserId },
-						{ debtorId: settlerUserId, creditorId: userId }
-					]
-				}
-			})
+		// Розраховуємо баланси між двома користувачами окремо для кожної спільної групи
+		// Для кожної групи створюємо окремий платіж
 
-			for (const debt of debts) {
-				if (debt.remaining > 0) {
-					await tx.debtPayment.create({
-						data: {
-							debtId: debt.id,
-							amount: debt.remaining,
-							creatorId: userId
-						}
-					})
+		// 1. Отримуємо всі борги між цими користувачами
+		const debts = await this.prismaService.debt.findMany({
+			where: {
+				OR: [
+					{ debtorId: userId, creditorId: settlerUserId },
+					{ debtorId: settlerUserId, creditorId: userId }
+				],
+				isActual: true
+			},
+			include: {
+				expense: {
+					select: { groupId: true }
 				}
-				await tx.debt.update({
-					where: { id: debt.id },
+			}
+		})
+
+		// 2. Отримуємо всі платежі між цими користувачами
+		const payments = await this.prismaService.groupPayment.findMany({
+			where: {
+				OR: [
+					{ fromId: userId, toId: settlerUserId },
+					{ fromId: settlerUserId, toId: userId }
+				]
+			}
+		})
+
+		// 3. Розраховуємо баланс для кожної групи окремо
+		const balancesByGroup = new Map<string, number>()
+
+		// Обробляємо борги
+		for (const debt of debts) {
+			const groupId = debt.expense.groupId
+			const isUserDebtor = debt.debtorId === userId
+
+			// Якщо userId боржник, його баланс негативний (винен)
+			// Якщо userId кредитор, його баланс позитивний (йому винні)
+			const signedAmount = isUserDebtor ? -debt.remaining : debt.remaining
+
+			balancesByGroup.set(
+				groupId,
+				(balancesByGroup.get(groupId) || 0) + signedAmount
+			)
+		}
+
+		// Обробляємо платежі
+		for (const payment of payments) {
+			const groupId = payment.groupId
+			const isUserFrom = payment.fromId === userId
+
+			// Якщо userId заплатив, його баланс збільшується (менше винен/більше має отримати)
+			// Якщо userId отримав, його баланс зменшується (більше винен/менше має отримати)
+			const signedAmount = isUserFrom ? payment.amount : -payment.amount
+
+			balancesByGroup.set(
+				groupId,
+				(balancesByGroup.get(groupId) || 0) + signedAmount
+			)
+		}
+
+		// 4. Створюємо платіж для кожної групи де є ненульовий баланс
+		for (const [groupId, balance] of balancesByGroup.entries()) {
+			if (Math.abs(balance) < 0.01) {
+				// Баланс вже нульовий в цій групі
+				continue
+			}
+
+			if (balance > 0) {
+				// settlerUserId винен userId
+				await this.prismaService.groupPayment.create({
 					data: {
-						status: 'SETTLED',
-						remaining: 0
+						groupId: groupId,
+						fromId: settlerUserId,
+						toId: userId,
+						amount: balance,
+						creatorId: userId
+					}
+				})
+			} else {
+				// userId винен settlerUserId
+				await this.prismaService.groupPayment.create({
+					data: {
+						groupId: groupId,
+						fromId: userId,
+						toId: settlerUserId,
+						amount: Math.abs(balance),
+						creatorId: userId
 					}
 				})
 			}
-		})
+		}
+
 		return true
 	}
 }

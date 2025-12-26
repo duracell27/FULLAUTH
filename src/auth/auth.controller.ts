@@ -13,7 +13,7 @@ import {
 	Res,
 	UseGuards
 } from '@nestjs/common'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
 import { AuthService } from './auth.service'
 import { RegisterDto } from './dto/register.dto'
 import { Request, Response } from 'express'
@@ -56,7 +56,9 @@ export class AuthController {
 	) {
 		if (!code) {
 			throw new BadRequestException(
-				this.i18n.t('auth.oauth.code_required')
+				this.i18n.t('common.auth.oauth.code_required', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateNotificationDto } from './dto/create-notification.dto'
 import { UpdateNotificationDto } from './dto/update-notification.dto'
@@ -58,7 +58,11 @@ export class NotificationsService {
 		})
 
 		if (!notification) {
-			throw new Error(this.i18n.t('errors.notification_not_found'))
+			throw new Error(
+				this.i18n.t('common.errors.notification_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
 		}
 
 		return this.mapToResponseDto(notification)
@@ -101,7 +105,11 @@ export class NotificationsService {
 		})
 
 		if (!existingNotification) {
-			throw new Error(this.i18n.t('errors.notification_not_found'))
+			throw new Error(
+				this.i18n.t('common.errors.notification_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
 		}
 
 		await this.prisma.notification.delete({
@@ -124,10 +132,16 @@ export class NotificationsService {
 		return this.create({
 			userId: receiverId,
 			type: NotificationType.FRIEND_REQUEST,
-			title: this.i18n.t('notifications.friend_request.title'),
-			message: this.i18n.t('notifications.friend_request.message', {
-				args: { senderName }
+			title: this.i18n.t('common.notifications.friend_request.title', {
+				lang: I18nContext.current()?.lang
 			}),
+			message: this.i18n.t(
+				'common.notifications.friend_request.message',
+				{
+					lang: I18nContext.current()?.lang,
+					args: { senderName }
+				}
+			),
 			relatedUserId: senderId,
 			metadata: { senderName }
 		})
@@ -142,10 +156,16 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.GROUP_INVITATION,
-			title: this.i18n.t('notifications.group_invitation.title'),
-			message: this.i18n.t('notifications.group_invitation.message', {
-				args: { inviterName, groupName }
+			title: this.i18n.t('common.notifications.group_invitation.title', {
+				lang: I18nContext.current()?.lang
 			}),
+			message: this.i18n.t(
+				'common.notifications.group_invitation.message',
+				{
+					lang: I18nContext.current()?.lang,
+					args: { inviterName, groupName }
+				}
+			),
 			relatedGroupId: groupId,
 			metadata: { groupName, inviterName }
 		})
@@ -161,8 +181,11 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.EXPENSE_ADDED,
-			title: this.i18n.t('notifications.expense_added.title'),
-			message: this.i18n.t('notifications.expense_added.message', {
+			title: this.i18n.t('common.notifications.expense_added.title', {
+				lang: I18nContext.current()?.lang
+			}),
+			message: this.i18n.t('common.notifications.expense_added.message', {
+				lang: I18nContext.current()?.lang,
 				args: { expenseDescription, groupName, amount }
 			}),
 			relatedExpenseId: expenseId,
@@ -187,8 +210,11 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.DEBT_CREATED,
-			title: this.i18n.t(titleKey),
+			title: this.i18n.t(titleKey, {
+				lang: I18nContext.current()?.lang
+			}),
 			message: this.i18n.t(messageKey, {
+				lang: I18nContext.current()?.lang,
 				args: { amount, expenseDescription }
 			}),
 			relatedDebtId: debtId,
@@ -205,10 +231,16 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.USER_REMOVED_FROM_GROUP,
-			title: this.i18n.t('notifications.user_removed_from_group.title'),
+			title: this.i18n.t(
+				'common.notifications.user_removed_from_group.title',
+				{ lang: I18nContext.current()?.lang }
+			),
 			message: this.i18n.t(
 				'notifications.user_removed_from_group.message',
-				{ args: { removerName, groupName } }
+				{
+					lang: I18nContext.current()?.lang,
+					args: { removerName, groupName }
+				}
 			),
 			relatedGroupId: groupId,
 			metadata: { groupName, removerName }

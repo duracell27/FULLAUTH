@@ -2,16 +2,18 @@ import { PrismaService } from '@/prisma/prisma.service'
 import {
 	Injectable,
 	NotFoundException,
-	BadRequestException
+	BadRequestException,
+	Inject,
+	forwardRef
 } from '@nestjs/common'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
 import {
 	GroupDebtPaymentDto,
 	DeleteGroupDebtPaymentDto
 } from './dto/group-debt-payment.dto'
-import { DebtStatus } from '@prisma/client'
 import { GroupMembersService } from '@/group-members/group-members.service'
 import { NotificationsService } from '@/notifications/notifications.service'
+import { GroupsService } from '@/groups/groups.service'
 
 @Injectable()
 export class DebtsService {
@@ -19,14 +21,18 @@ export class DebtsService {
 		private readonly prismaService: PrismaService,
 		private readonly groupMembersService: GroupMembersService,
 		private readonly notificationsService: NotificationsService,
-		private readonly i18n: I18nService
+		private readonly i18n: I18nService,
+		@Inject(forwardRef(() => GroupsService))
+		private readonly groupsService: GroupsService
 	) {}
 
 	async addDebtPay(dto: GroupDebtPaymentDto, userId: string) {
-		const amountLeft = dto.amount
-		if (amountLeft <= 0)
+		const paymentAmount = dto.amount
+		if (paymentAmount <= 0)
 			throw new BadRequestException(
-				this.i18n.t('debts.payment.amount_positive')
+				this.i18n.t('common.debts.payment.amount_positive', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 
 		const isUserGroupMember =
@@ -37,326 +43,217 @@ export class DebtsService {
 
 		if (!isUserGroupMember)
 			throw new BadRequestException(
-				this.i18n.t('debts.payment.not_group_member')
-			)
-
-		// Знаходимо всі борги користувача в групі зі статусом PENDING
-		const debts = await this.prismaService.debt.findMany({
-			where: {
-				debtorId: dto.debtorId, // ви — боржник
-				creditorId: dto.creditorId, // кому ви винні
-				status: DebtStatus.PENDING,
-				expense: {
-					groupId: dto.groupId
-				}
-			},
-			orderBy: { createdAt: 'asc' }
-		})
-
-		if (!debts.length)
-			throw new NotFoundException(
-				this.i18n.t('debts.payment.no_pending_debts')
-			)
-
-		const sumOfDebts = debts.reduce((sum, debt) => sum + debt.remaining, 0)
-		if (sumOfDebts < amountLeft)
-			throw new BadRequestException(
-				this.i18n.t('debts.payment.amount_too_large')
-			)
-
-		await this.prismaService.$transaction(async tx => {
-			let localAmountLeft = amountLeft
-			const settledDebts: Array<{
-				debt: (typeof debts)[number]
-				expenseDescription: string
-			}> = []
-
-			for (const debt of debts) {
-				if (localAmountLeft <= 0) break
-				const payAmount = Math.min(debt.remaining, localAmountLeft)
-
-				// Створити платіж
-				await tx.debtPayment.create({
-					data: {
-						debtId: debt.id,
-						amount: payAmount,
-						creatorId: userId
-					}
+				this.i18n.t('common.debts.payment.not_group_member', {
+					lang: I18nContext.current()?.lang
 				})
+			)
 
-				// Оновити борг
-				const newRemaining = debt.remaining - payAmount
-				const status = newRemaining <= 0 ? 'SETTLED' : 'PENDING'
-				await tx.debt.update({
-					where: { id: debt.id },
-					data: { remaining: newRemaining, status }
-				})
-
-				// Якщо борг повністю вирішений, додаємо його до списку
-				if (status === 'SETTLED') {
-					const expense = await tx.expense.findFirst({
-						where: { id: debt.expenseId },
-						select: { description: true }
-					})
-
-					if (expense) {
-						settledDebts.push({
-							debt,
-							expenseDescription: expense.description
-						})
-					}
-				}
-
-				localAmountLeft -= payAmount
-			}
-
-			// Створюємо згруповані нотифікації для погашених боргів
-			if (settledDebts.length > 0) {
-				await this.createSettledDebtsNotifications(
-					settledDebts,
-					dto.groupId,
-					tx
-				)
-			}
-
-			const [directDebts, reverseDebts] = await Promise.all([
-				tx.debt.findMany({
+		// Розраховуємо поточний баланс між двома користувачами
+		// Balance = (борги debtorId → creditorId) - (борги creditorId → debtorId) - (платежі debtorId → creditorId) + (платежі creditorId → debtorId)
+		const [debtsOwed, debtsOwedReverse, paymentsFrom, paymentsTo] =
+			await Promise.all([
+				// Борги: debtorId винен creditorId
+				this.prismaService.debt.aggregate({
 					where: {
 						debtorId: dto.debtorId,
 						creditorId: dto.creditorId,
-						status: DebtStatus.PENDING,
+						isActual: true,
 						expense: { groupId: dto.groupId }
-					}
+					},
+					_sum: { remaining: true }
 				}),
-				tx.debt.findMany({
+				// Борги: creditorId винен debtorId (зворотній напрямок)
+				this.prismaService.debt.aggregate({
 					where: {
 						debtorId: dto.creditorId,
 						creditorId: dto.debtorId,
-						status: DebtStatus.PENDING,
+						isActual: true,
 						expense: { groupId: dto.groupId }
-					}
+					},
+					_sum: { remaining: true }
+				}),
+				// Платежі: debtorId → creditorId
+				this.prismaService.groupPayment.aggregate({
+					where: {
+						groupId: dto.groupId,
+						fromId: dto.debtorId,
+						toId: dto.creditorId
+					},
+					_sum: { amount: true }
+				}),
+				// Платежі: creditorId → debtorId
+				this.prismaService.groupPayment.aggregate({
+					where: {
+						groupId: dto.groupId,
+						fromId: dto.creditorId,
+						toId: dto.debtorId
+					},
+					_sum: { amount: true }
 				})
 			])
 
-			const directSum = directDebts.reduce(
-				(sum, d) => sum + d.remaining,
-				0
-			)
-			const reverseSum = reverseDebts.reduce(
-				(sum, d) => sum + d.remaining,
-				0
+		const debtsOwedSum = debtsOwed._sum.remaining || 0
+		const debtsOwedReverseSum = debtsOwedReverse._sum.remaining || 0
+		const paymentsFromSum = paymentsFrom._sum.amount || 0
+		const paymentsToSum = paymentsTo._sum.amount || 0
+
+		// Поточний баланс (скільки debtorId ще винен creditorId)
+		const currentBalance =
+			debtsOwedSum - debtsOwedReverseSum - paymentsFromSum + paymentsToSum
+
+		if (currentBalance < paymentAmount - 0.01)
+			throw new BadRequestException(
+				this.i18n.t('common.debts.payment.amount_too_large', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 
-			if (Math.abs(directSum - reverseSum) < 0.01 && directSum > 0) {
-				// Отримуємо деталі боргів для створення нотифікацій
-				const allDebts = await tx.debt.findMany({
-					where: {
-						OR: [
-							{
-								debtorId: dto.debtorId,
-								creditorId: dto.creditorId,
-								status: DebtStatus.PENDING,
-								expense: { groupId: dto.groupId }
-							},
-							{
-								debtorId: dto.creditorId,
-								creditorId: dto.debtorId,
-								status: DebtStatus.PENDING,
-								expense: { groupId: dto.groupId }
-							}
-						]
-					},
-					include: {
-						expense: {
-							select: { description: true }
+		if (currentBalance <= 0.01)
+			throw new NotFoundException(
+				this.i18n.t('common.debts.payment.no_pending_debts', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+
+		// Створюємо платіж
+		await this.prismaService.groupPayment.create({
+			data: {
+				groupId: dto.groupId,
+				fromId: dto.debtorId,
+				toId: dto.creditorId,
+				amount: paymentAmount,
+				creatorId: userId
+			}
+		})
+
+		// Перераховуємо спрощені борги з урахуванням нового платежу
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: dto.groupId },
+			select: {
+				simplificationExpenseId: true
+			}
+		})
+
+		if (group?.simplificationExpenseId) {
+			await this.groupsService.simplifyAllDebts(
+				dto.groupId,
+				group.simplificationExpenseId
+			)
+		}
+
+		// Перевіряємо чи після платежу баланс став близьким до нуля
+		const newBalance = currentBalance - paymentAmount
+		if (Math.abs(newBalance) < 0.01) {
+			// Баланс вирівнявся! Створюємо нотифікації про погашення боргів
+			const allDebts = await this.prismaService.debt.findMany({
+				where: {
+					OR: [
+						{
+							debtorId: dto.debtorId,
+							creditorId: dto.creditorId,
+							isActual: true,
+							expense: { groupId: dto.groupId }
+						},
+						{
+							debtorId: dto.creditorId,
+							creditorId: dto.debtorId,
+							isActual: true,
+							expense: { groupId: dto.groupId }
 						}
+					],
+					remaining: { gt: 0 }
+				},
+				include: {
+					expense: {
+						select: { description: true }
 					}
-				})
+				}
+			})
 
-				// Оновлюємо статус боргів
-				await tx.debt.updateMany({
-					where: {
-						OR: [
-							{
-								debtorId: dto.debtorId,
-								creditorId: dto.creditorId,
-								status: DebtStatus.PENDING,
-								expense: { groupId: dto.groupId }
-							},
-							{
-								debtorId: dto.creditorId,
-								creditorId: dto.debtorId,
-								status: DebtStatus.PENDING,
-								expense: { groupId: dto.groupId }
-							}
-						]
-					},
-					data: { remaining: 0, status: DebtStatus.SETTLED }
-				})
-
-				// Створюємо згруповані нотифікації для всіх вирішених боргів
+			if (allDebts.length > 0) {
 				const settledDebtsData = allDebts
 					.filter(debt => debt.expense)
 					.map(debt => ({
 						debt,
-						expenseDescription: debt.expense!.description
+						expenseDescription: debt.expense.description
 					}))
 
-				if (settledDebtsData.length > 0) {
-					await this.createSettledDebtsNotifications(
-						settledDebtsData,
-						dto.groupId,
-						tx
-					)
-				}
+				await this.createSettledDebtsNotifications(
+					settledDebtsData,
+					dto.groupId
+				)
 			}
-		})
+		}
 
 		return true
 	}
 
 	async deleteDebtPay(dto: DeleteGroupDebtPaymentDto, userId: string) {
 		// Валідація DTO
-		if (!dto.groupId || !dto.creditorId || !dto.debtorId) {
+		if (!dto.paymentId) {
 			throw new BadRequestException(
-				this.i18n.t('debts.payment.required_fields_missing')
+				this.i18n.t('common.debts.payment.required_fields_missing', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
+		// Знаходимо конкретний платіж по ID
+		const payment = await this.prismaService.groupPayment.findUnique({
+			where: {
+				id: dto.paymentId
+			},
+			select: {
+				id: true,
+				groupId: true,
+				fromId: true,
+				toId: true,
+				creatorId: true
+			}
+		})
+
+		if (!payment)
+			throw new NotFoundException(
+				this.i18n.t('common.debts.payment.no_payments_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+
+		// Перевіряємо чи користувач є учасником групи
 		const isUserGroupMember =
 			await this.groupMembersService.isUserGroupMember(
 				userId,
-				dto.groupId
+				payment.groupId
 			)
 
 		if (!isUserGroupMember)
 			throw new BadRequestException(
-				this.i18n.t('debts.payment.not_group_member')
+				this.i18n.t('common.debts.payment.not_group_member', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 
-		// Знаходимо всі борги між цими користувачами в групі
-		const debts = await this.prismaService.debt.findMany({
+		// Видаляємо конкретний платіж
+		await this.prismaService.groupPayment.delete({
 			where: {
-				OR: [
-					{
-						debtorId: dto.debtorId,
-						creditorId: dto.creditorId,
-						expense: { groupId: dto.groupId }
-					},
-					{
-						debtorId: dto.creditorId,
-						creditorId: dto.debtorId,
-						expense: { groupId: dto.groupId }
-					}
-				]
-			},
-			include: {
-				payments: {
-					where: { isActual: true },
-					orderBy: { createdAt: 'desc' }
-				}
+				id: dto.paymentId
 			}
 		})
 
-		if (!debts.length)
-			throw new NotFoundException(
-				this.i18n.t('debts.payment.no_debts_found')
-			)
-
-		// Перевіряємо чи є платежі для видалення
-		const hasPayments = debts.some(debt => debt.payments.length > 0)
-		if (!hasPayments)
-			throw new NotFoundException(
-				this.i18n.t('debts.payment.no_payments_found')
-			)
-
-		await this.prismaService.$transaction(async tx => {
-			for (const debt of debts) {
-				if (debt.payments.length === 0) continue
-
-				// Видаляємо всі платежі по цьому боргу
-				await tx.debtPayment.deleteMany({
-					where: { debtId: debt.id }
-				})
-
-				// Відновлюємо початковий стан боргу
-				const totalPaid = debt.payments.reduce(
-					(sum, payment) => sum + payment.amount,
-					0
-				)
-				const newRemaining = debt.remaining + totalPaid
-
-				await tx.debt.update({
-					where: { id: debt.id },
-					data: {
-						remaining: newRemaining,
-						status:
-							newRemaining <= 0
-								? DebtStatus.SETTLED
-								: DebtStatus.PENDING
-					}
-				})
-
-				// Якщо борг знову став активним (PENDING), створюємо нотифікацію
-				if (newRemaining > 0) {
-					// Отримуємо деталі витрати для нотифікації
-					const expense = await tx.expense.findFirst({
-						where: { id: debt.expenseId },
-						select: { description: true }
-					})
-
-					if (expense) {
-						// Нотифікація для боржника
-						await this.notificationsService.create({
-							userId: debt.debtorId,
-							type: 'DEBT_CREATED',
-							title: this.i18n.t(
-								'debts.notifications.debt_reactivated.title'
-							),
-							message: this.i18n.t(
-								'debts.notifications.debt_reactivated.message_debtor',
-								{
-									args: {
-										expenseDescription: expense.description
-									}
-								}
-							),
-							relatedDebtId: debt.id,
-							relatedExpenseId: debt.expenseId,
-							metadata: {
-								expenseDescription: expense.description,
-								amount: newRemaining,
-								isDebtor: true
-							}
-						})
-
-						// Нотифікація для кредитора
-						await this.notificationsService.create({
-							userId: debt.creditorId,
-							type: 'DEBT_CREATED',
-							title: this.i18n.t(
-								'debts.notifications.debt_reactivated.title'
-							),
-							message: this.i18n.t(
-								'debts.notifications.debt_reactivated.message_creditor',
-								{
-									args: {
-										expenseDescription: expense.description
-									}
-								}
-							),
-							relatedDebtId: debt.id,
-							relatedExpenseId: debt.expenseId,
-							metadata: {
-								expenseDescription: expense.description,
-								amount: newRemaining,
-								isDebtor: false
-							}
-						})
-					}
-				}
+		// Перераховуємо спрощені борги після видалення платежу
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: payment.groupId },
+			select: {
+				simplificationExpenseId: true
 			}
 		})
+
+		if (group?.simplificationExpenseId) {
+			await this.groupsService.simplifyAllDebts(
+				payment.groupId,
+				group.simplificationExpenseId
+			)
+		}
 
 		return true
 	}
@@ -371,8 +268,7 @@ export class DebtsService {
 			}
 			expenseDescription: string
 		}>,
-		groupId: string,
-		tx: any
+		groupId: string
 	): Promise<void> {
 		// Групуємо борги по боржниках та кредиторах
 		const debtorNotifications = new Map<
@@ -409,10 +305,16 @@ export class DebtsService {
 			await this.notificationsService.create({
 				userId: debtorId,
 				type: 'DEBT_SETTLED',
-				title: this.i18n.t('debts.notifications.debt_settled.title'),
+				title: this.i18n.t(
+					'common.debts.notifications.debt_settled.title',
+					{
+						lang: I18nContext.current()?.lang
+					}
+				),
 				message: this.i18n.t(
 					'debts.notifications.debt_settled.message_debtor_multiple',
 					{
+						lang: I18nContext.current()?.lang,
 						args: {
 							count: data.count,
 							totalAmount: data.totalAmount
@@ -433,10 +335,16 @@ export class DebtsService {
 			await this.notificationsService.create({
 				userId: creditorId,
 				type: 'DEBT_SETTLED',
-				title: this.i18n.t('debts.notifications.debt_settled.title'),
+				title: this.i18n.t(
+					'common.debts.notifications.debt_settled.title',
+					{
+						lang: I18nContext.current()?.lang
+					}
+				),
 				message: this.i18n.t(
 					'debts.notifications.debt_settled.message_creditor_multiple',
 					{
+						lang: I18nContext.current()?.lang,
 						args: {
 							count: data.count,
 							totalAmount: data.totalAmount

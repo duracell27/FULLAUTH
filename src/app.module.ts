@@ -45,7 +45,11 @@ import { UserPreferredLanguageResolver } from './i18n/language.resolver'
 				{ use: QueryResolver, options: ['lang'] },
 				{ use: CookieResolver, options: ['lang'] },
 				HeaderResolver
-			]
+			],
+			typesOutputPath: path.join(
+				process.cwd(),
+				'src/generated/i18n.generated.ts'
+			)
 		}),
 		PrismaModule,
 		AuthModule,

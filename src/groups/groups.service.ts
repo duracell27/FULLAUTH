@@ -5,7 +5,8 @@ import { PrismaService } from '@/prisma/prisma.service'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
 import { GroupMemberStatus, GroupRole } from '@prisma/client'
 import { NotificationsService } from '../notifications/notifications.service'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
+import type { Prisma } from '@prisma/client'
 
 type GroupWithMembers = {
 	id: string
@@ -15,6 +16,7 @@ type GroupWithMembers = {
 	isFinished: boolean
 	isPersonal: boolean
 	totalExpenses: number
+	userTotalExpenses: number
 	userTotalBalance: number
 	eventDate: Date
 	createdAt: Date
@@ -56,24 +58,46 @@ export class GroupsService {
 	) {}
 
 	public async createGroup(userId: string, dto: CreateGroupDto) {
-		const group = await this.prismaService.groupEntity.create({
-			data: {
-				name: dto.name,
-				avatarUrl: dto.avatarUrl,
-				eventDate: dto.eventDate
-			}
-		})
+		return await this.prismaService.$transaction(async tx => {
+			// Спочатку створюємо групу без simplificationExpenseId
+			const group = await tx.groupEntity.create({
+				data: {
+					name: dto.name,
+					avatarUrl: dto.avatarUrl,
+					eventDate: dto.eventDate
+				}
+			})
 
-		await this.prismaService.groupMember.create({
-			data: {
-				userId: userId,
-				groupId: group.id,
-				role: GroupRole.ADMIN,
-				status: GroupMemberStatus.ACCEPTED
-			}
-		})
+			// Створюємо технічну витрату для спрощення боргів
+			const systemExpense = await tx.expense.create({
+				data: {
+					groupId: group.id,
+					creatorId: userId,
+					description: 'Simplified debts',
+					amount: 0,
+					date: new Date()
+				}
+			})
 
-		return group
+			// Оновлюємо групу з simplificationExpenseId
+			await tx.groupEntity.update({
+				where: { id: group.id },
+				data: {
+					simplificationExpenseId: systemExpense.id
+				}
+			})
+
+			await tx.groupMember.create({
+				data: {
+					userId: userId,
+					groupId: group.id,
+					role: GroupRole.ADMIN,
+					status: GroupMemberStatus.ACCEPTED
+				}
+			})
+
+			return group
+		})
 	}
 
 	public async createPersonalGroup(
@@ -87,14 +111,18 @@ export class GroupsService {
 
 		if (!invitedUser) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.user_not_found')
+				this.i18n.t('common.groups.errors.user_not_found', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
 		// Перевіряємо, чи не є це той самий користувач
 		if (userId === dto.userId) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.cannot_create_with_self')
+				this.i18n.t('common.groups.errors.cannot_create_with_self', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -125,7 +153,9 @@ export class GroupsService {
 			const memberIds = existingPersonalGroup.members.map(m => m.userId)
 			if (memberIds.includes(userId) && memberIds.includes(dto.userId)) {
 				throw new BadRequestException(
-					this.i18n.t('groups.errors.personal_group_exists')
+					this.i18n.t('common.groups.errors.personal_group_exists', {
+						lang: I18nContext.current()?.lang
+					})
 				)
 			}
 		}
@@ -188,27 +218,74 @@ export class GroupsService {
 
 		if (!userGroupAdmin) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.not_group_admin')
+				this.i18n.t('common.groups.errors.not_group_admin', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
 		if (dto.isFinished === true) {
-			// Перевіряємо, чи є невиплачені борги у групі
+			// Перевіряємо, чи є невиплачені борги у групі з урахуванням платежів
 			const allDebts = await this.prismaService.debt.findMany({
 				where: {
 					expense: {
 						groupId: dto.groupId
-					}
+					},
+					isActual: true
 				},
 				select: {
+					debtorId: true,
+					creditorId: true,
 					remaining: true
 				}
 			})
 
-			const hasUnpaidDebts = allDebts.some(debt => debt.remaining > 0)
+			// Отримуємо всі платежі в групі
+			const allPayments = await this.prismaService.groupPayment.findMany({
+				where: {
+					groupId: dto.groupId
+				},
+				select: {
+					fromId: true,
+					toId: true,
+					amount: true
+				}
+			})
+
+			// Розраховуємо чистий баланс між користувачами
+			const pairBalances = new Map<string, number>()
+
+			// Додаємо борги до балансів
+			for (const debt of allDebts) {
+				const key = debt.debtorId + '->' + debt.creditorId
+				pairBalances.set(
+					key,
+					(pairBalances.get(key) || 0) + debt.remaining
+				)
+			}
+
+			// Віднімаємо платежі від балансів
+			for (const payment of allPayments) {
+				const key = payment.fromId + '->' + payment.toId
+				pairBalances.set(
+					key,
+					(pairBalances.get(key) || 0) - payment.amount
+				)
+			}
+
+			// Перевіряємо, чи є невиплачені борги (баланс > 0.01)
+			const hasUnpaidDebts = Array.from(pairBalances.values()).some(
+				balance => balance > 0.01
+			)
+
 			if (hasUnpaidDebts) {
 				throw new BadRequestException(
-					this.i18n.t('groups.errors.cannot_finish_with_debts')
+					this.i18n.t(
+						'common.groups.errors.cannot_finish_with_debts',
+						{
+							lang: I18nContext.current()?.lang
+						}
+					)
 				)
 			}
 		}
@@ -238,9 +315,13 @@ export class GroupsService {
 			}
 		})
 
+		const currentLang = I18nContext.current()?.lang
+
 		if (!userGroupAdmin) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.not_group_admin')
+				this.i18n.t('common.groups.errors.not_group_admin', {
+					lang: currentLang
+				})
 			)
 		}
 
@@ -251,24 +332,64 @@ export class GroupsService {
 		})
 		if (!group?.isFinished) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.can_only_delete_finished')
+				this.i18n.t('common.groups.errors.can_only_delete_finished', {
+					lang: currentLang
+				})
 			)
 		}
 
+		// Перевіряємо невиплачені борги з урахуванням платежів
 		const allDebts = await this.prismaService.debt.findMany({
 			where: {
 				expense: {
 					groupId: groupId
-				}
+				},
+				isActual: true
 			},
 			select: {
+				debtorId: true,
+				creditorId: true,
 				remaining: true
 			}
 		})
-		const hasUnpaidDebts = allDebts.some(debt => debt.remaining > 0)
+
+		// Отримуємо всі платежі в групі
+		const allPayments = await this.prismaService.groupPayment.findMany({
+			where: {
+				groupId: groupId
+			},
+			select: {
+				fromId: true,
+				toId: true,
+				amount: true
+			}
+		})
+
+		// Розраховуємо чистий баланс між користувачами
+		const pairBalances = new Map<string, number>()
+
+		// Додаємо борги до балансів
+		for (const debt of allDebts) {
+			const key = debt.debtorId + '->' + debt.creditorId
+			pairBalances.set(key, (pairBalances.get(key) || 0) + debt.remaining)
+		}
+
+		// Віднімаємо платежі від балансів
+		for (const payment of allPayments) {
+			const key = payment.fromId + '->' + payment.toId
+			pairBalances.set(key, (pairBalances.get(key) || 0) - payment.amount)
+		}
+
+		// Перевіряємо, чи є невиплачені борги (баланс > 0.01)
+		const hasUnpaidDebts = Array.from(pairBalances.values()).some(
+			balance => balance > 0.01
+		)
+
 		if (hasUnpaidDebts) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.cannot_delete_with_debts')
+				this.i18n.t('common.groups.errors.cannot_delete_with_debts', {
+					lang: currentLang
+				})
 			)
 		}
 
@@ -296,6 +417,7 @@ export class GroupsService {
 				eventDate: true,
 				isLocked: true,
 				isFinished: true,
+				isSimplified: true,
 				isPersonal: true,
 				createdAt: true,
 				members: {
@@ -321,6 +443,11 @@ export class GroupsService {
 					}
 				},
 				expenses: {
+					where: {
+						description: {
+							not: 'Simplified debts'
+						}
+					},
 					select: {
 						id: true,
 						amount: true,
@@ -351,13 +478,15 @@ export class GroupsService {
 								OR: [
 									{ debtorId: userId },
 									{ creditorId: userId }
-								],
-								isActual: true
+								]
+								// Не фільтруємо по isActual - показуємо оригінальні борги для витрат
 							},
 							select: {
 								amount: true,
+								remaining: true,
 								debtorId: true,
-								creditorId: true
+								creditorId: true,
+								isActual: true
 							}
 						}
 					},
@@ -371,14 +500,18 @@ export class GroupsService {
 		// Перевірка, чи існує група
 		if (!group) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.group_not_found')
+				this.i18n.t('common.groups.errors.group_not_found', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
 		// Явна перевірка, чи members є масивом (хоча тип гарантує, що це масив)
 		if (!Array.isArray(group.members)) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.members_not_defined')
+				this.i18n.t('common.groups.errors.members_not_defined', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -386,18 +519,28 @@ export class GroupsService {
 		const isMember = group.members.some(member => member.userId === userId)
 		if (!isMember) {
 			throw new BadRequestException(
-				this.i18n.t('groups.errors.user_not_in_group')
+				this.i18n.t('common.groups.errors.user_not_in_group', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
 		// Обчислюємо баланс користувача для кожної витрати
 		const expensesWithBalance = group.expenses.map(expense => {
-			const totalOwedToUser = expense.splits
+			// В спрощеному режимі показуємо оригінальні борги (всі splits)
+			// В звичайному режимі - тільки активні
+			const activeSplits = group.isSimplified
+				? expense.splits
+				: expense.splits.filter(split => split.isActual)
+
+			// Для балансу по витраті використовуємо amount (оригінальна частка),
+			// а не remaining (поточний залишок), щоб показати участь в витраті
+			const totalOwedToUser = activeSplits
 				.filter(split => split.creditorId === userId)
 				.reduce((sum, split) => sum + split.amount, 0)
 
 			// Гроші, що поточний юзер винен іншим за цю витрату
-			const totalOwedByUser = expense.splits
+			const totalOwedByUser = activeSplits
 				.filter(split => split.debtorId === userId)
 				.reduce((sum, split) => sum + split.amount, 0)
 
@@ -428,172 +571,161 @@ export class GroupsService {
 			0
 		)
 
-		// 2. Загальний баланс користувача по всій групі
-		// Ми використовуємо новий масив `expensesWithBalance`,
-		// оскільки там вже розрахований баланс по кожній витраті.
-		const userTotalBalance = expensesWithBalance.reduce(
-			(sum, expense) => sum + expense.userBalance,
-			0
-		)
+		// 2. Розраховуємо частку користувача у витратах групи
+		// Формула: Ваші витрати = (Ваші платежі) - (Борги до вас) + (Ваші борги)
+
+		// Сума платежів користувача
+		const userPayments = await this.prismaService.expensePayment.aggregate({
+			where: {
+				payerId: userId,
+				expense: {
+					groupId: groupId,
+					description: {
+						not: 'Simplified debts'
+					}
+				}
+			},
+			_sum: {
+				amount: true
+			}
+		})
+
+		// Борги до користувача (він creditor)
+		const debtsToUser = await this.prismaService.debt.aggregate({
+			where: {
+				creditorId: userId,
+				expense: {
+					groupId: groupId,
+					description: {
+						not: 'Simplified debts'
+					}
+				}
+			},
+			_sum: {
+				amount: true
+			}
+		})
+
+		// Борги користувача (він debtor)
+		const debtsFromUser = await this.prismaService.debt.aggregate({
+			where: {
+				debtorId: userId,
+				expense: {
+					groupId: groupId,
+					description: {
+						not: 'Simplified debts'
+					}
+				}
+			},
+			_sum: {
+				amount: true
+			}
+		})
+
+		const userTotalExpenses =
+			(userPayments._sum.amount || 0) -
+			(debtsToUser._sum.amount || 0) +
+			(debtsFromUser._sum.amount || 0)
 
 		// --- НОВИЙ КОД: Обчислення балансів всіх учасників ---
 
-		// Отримуємо всі борги в групі для розрахунку балансів учасників
+		// Отримуємо всі активні борги в групі для розрахунку балансів учасників
 		const allDebts = await this.prismaService.debt.findMany({
 			where: {
 				expense: {
 					groupId: groupId
-				}
+				},
+				isActual: true
 			},
 			select: {
 				debtorId: true,
 				creditorId: true,
 				remaining: true,
-				debtor: {
+				isActual: true
+			}
+		})
+
+		// Отримуємо всі GroupPayment в групі
+		const groupPayments = await this.prismaService.groupPayment.findMany({
+			where: { groupId: groupId },
+			select: {
+				id: true,
+				fromId: true,
+				toId: true,
+				amount: true,
+				createdAt: true,
+				from: {
 					select: {
 						id: true,
 						displayName: true,
 						picture: true
 					}
 				},
-				creditor: {
+				to: {
 					select: {
 						id: true,
 						displayName: true,
 						picture: true
 					}
 				},
-				payments: {
+				creator: {
 					select: {
-						amount: true,
-						createdAt: true,
-						isActual: true,
-						creatorId: true,
-						creator: {
-							select: {
-								id: true,
-								displayName: true,
-								picture: true
-							}
-						}
+						id: true,
+						displayName: true,
+						picture: true
 					}
 				}
 			}
 		})
 
-		type PaymentBetweenMembers = {
-			from: { id: string; displayName: string; picture: string | null }
-			to: { id: string; displayName: string; picture: string | null }
+		// Агрегуємо платежі по напрямках
+		type UserInfo = {
+			id: string
+			displayName: string
+			picture: string | null
+		}
+		type PaymentDetail = {
+			id: string
+			creator: UserInfo
 			amount: number
-			creators: Array<{
-				id: string
-				displayName: string
-				picture: string | null
-			}>
+			createdAt: Date
+		}
+		type PaymentBetweenMembers = {
+			from: UserInfo
+			to: UserInfo
+			amount: number
+			payments: PaymentDetail[]
 		}
 		const paymentsMap = new Map<string, PaymentBetweenMembers>()
-		const overpaysMap = new Map<string, PaymentBetweenMembers>()
 
-		for (const debt of allDebts) {
-			// ВСІ платежі (isActual true + false)
-			const totalPaid = debt.payments.reduce(
-				(sum, p) => sum + (p.amount || 0),
-				0
-			)
-			if (totalPaid > 0) {
-				const key = debt.debtorId + '->' + debt.creditorId
-				if (paymentsMap.has(key)) {
-					const existingPayment = paymentsMap.get(key)!
-					existingPayment.amount += totalPaid
-					// Додаємо унікальних креаторів
-					for (const payment of debt.payments) {
-						if (payment.creator) {
-							const creatorExists = existingPayment.creators.some(
-								creator => creator.id === payment.creator.id
-							)
-							if (!creatorExists) {
-								existingPayment.creators.push(payment.creator)
-							}
-						}
-					}
-				} else {
-					// Збираємо унікальних креаторів
-					const uniqueCreators: Array<{
-						id: string
-						displayName: string
-						picture: string | null
-					}> = []
-					for (const payment of debt.payments) {
-						if (payment.creator) {
-							const creatorExists = uniqueCreators.some(
-								creator => creator.id === payment.creator.id
-							)
-							if (!creatorExists) {
-								uniqueCreators.push(payment.creator)
-							}
-						}
-					}
+		for (const payment of groupPayments) {
+			if (!payment.creator) continue // Пропускаємо платежі без creator
 
-					paymentsMap.set(key, {
-						from: debt.debtor,
-						to: debt.creditor,
-						amount: totalPaid,
-						creators: uniqueCreators
-					})
-				}
+			const creator = payment.creator as UserInfo
+			const key = payment.fromId + '->' + payment.toId
+
+			const paymentDetail: PaymentDetail = {
+				id: payment.id,
+				creator: creator,
+				amount: payment.amount,
+				createdAt: payment.createdAt
 			}
 
-			// Overpays (isActual: false)
-			const overpaidPayments = debt.payments.filter(p => !p.isActual)
-			const overpaid = overpaidPayments.reduce(
-				(sum, p) => sum + (p.amount || 0),
-				0
-			)
-			if (overpaid > 0) {
-				const key = debt.debtorId + '->' + debt.creditorId
-				if (overpaysMap.has(key)) {
-					const existingOverpay = overpaysMap.get(key)!
-					existingOverpay.amount += overpaid
-					// Додаємо унікальних креаторів
-					for (const payment of overpaidPayments) {
-						if (payment.creator) {
-							const creatorExists = existingOverpay.creators.some(
-								creator => creator.id === payment.creator.id
-							)
-							if (!creatorExists) {
-								existingOverpay.creators.push(payment.creator)
-							}
-						}
-					}
-				} else {
-					// Збираємо унікальних креаторів
-					const uniqueCreators: Array<{
-						id: string
-						displayName: string
-						picture: string | null
-					}> = []
-					for (const payment of overpaidPayments) {
-						if (payment.creator) {
-							const creatorExists = uniqueCreators.some(
-								creator => creator.id === payment.creator.id
-							)
-							if (!creatorExists) {
-								uniqueCreators.push(payment.creator)
-							}
-						}
-					}
-
-					overpaysMap.set(key, {
-						from: debt.debtor,
-						to: debt.creditor,
-						amount: overpaid,
-						creators: uniqueCreators
-					})
-				}
+			if (paymentsMap.has(key)) {
+				const existing = paymentsMap.get(key)!
+				existing.amount += payment.amount
+				existing.payments.push(paymentDetail)
+			} else {
+				paymentsMap.set(key, {
+					from: payment.from as UserInfo,
+					to: payment.to as UserInfo,
+					amount: payment.amount,
+					payments: [paymentDetail]
+				})
 			}
 		}
+
 		const paymentsBetweenMembers = Array.from(paymentsMap.values())
-		const overpays = Array.from(overpaysMap.values())
 
 		// Створюємо Map для швидкого доступу до балансів учасників
 		const memberBalances = new Map<string, number>()
@@ -603,8 +735,11 @@ export class GroupsService {
 			memberBalances.set(member.userId, 0)
 		})
 
-		// Обчислюємо баланс кожного учасника
+		// Обчислюємо баланс кожного учасника (тільки на основі активних боргів)
 		allDebts.forEach(debt => {
+			// Тільки активні борги враховуються в балансах
+			if (!debt.isActual) return
+
 			// Кредитор отримує позитивний баланс (йому винні)
 			const creditorBalance = memberBalances.get(debt.creditorId) || 0
 			memberBalances.set(
@@ -618,6 +753,90 @@ export class GroupsService {
 
 			memberBalances.set(debt.debtorId, debtorBalance - debt.remaining)
 		})
+
+		// 2. Загальний баланс користувача по всій групі (на основі активних боргів)
+		let userTotalBalance = memberBalances.get(userId) || 0
+
+		// Коригуємо баланс з урахуванням платежів
+		for (const payment of groupPayments) {
+			if (payment.fromId === userId) {
+				// Користувач заплатив комусь - збільшує його баланс (додаємо)
+				userTotalBalance += payment.amount
+			}
+			if (payment.toId === userId) {
+				// Комусь заплатили користувачу - зменшує його баланс (віднімаємо)
+				userTotalBalance -= payment.amount
+			}
+		}
+
+		// Створюємо Map для швидкого доступу до користувачів
+		const usersMap = new Map<
+			string,
+			{ id: string; displayName: string; picture: string | null }
+		>()
+		for (const member of group.members) {
+			usersMap.set(member.userId, member.user)
+		}
+
+		// Розраховуємо overpays (коли платежів більше ніж боргів)
+		// Overpay виникає коли баланс між двома користувачами негативний
+		// (тобто хтось переплатив через видалення витрат)
+		type Overpay = {
+			from: { id: string; displayName: string; picture: string | null }
+			to: { id: string; displayName: string; picture: string | null }
+			amount: number
+			payments: PaymentDetail[]
+		}
+		const overpays: Overpay[] = []
+
+		// Для кожної пари користувачів рахуємо чистий баланс з урахуванням платежів
+		const pairBalances = new Map<string, number>()
+
+		// Додаємо борги до балансів
+		for (const debt of allDebts) {
+			const key = debt.debtorId + '->' + debt.creditorId
+			pairBalances.set(key, (pairBalances.get(key) || 0) + debt.remaining)
+		}
+
+		// Віднімаємо платежі від балансів
+		for (const payment of groupPayments) {
+			const key = payment.fromId + '->' + payment.toId
+			pairBalances.set(key, (pairBalances.get(key) || 0) - payment.amount)
+		}
+
+		// Якщо баланс негативний - це overpay (платежів більше ніж боргів)
+		for (const [key, balance] of pairBalances.entries()) {
+			if (balance < -0.01) {
+				// Витягуємо fromId і toId з ключа
+				const [fromId, toId] = key.split('->')
+				const fromUser = usersMap.get(fromId)
+				const toUser = usersMap.get(toId)
+
+				if (!fromUser || !toUser) continue
+
+				// Знаходимо платежі для цієї пари
+				const paymentsForPair = groupPayments.filter(
+					p => p.fromId === fromId && p.toId === toId
+				)
+
+				// Збираємо всі деталі платежів
+				const paymentDetails: PaymentDetail[] = paymentsForPair.map(
+					p => ({
+						id: p.id,
+						creator: p.creator as UserInfo,
+						amount: p.amount,
+						createdAt: p.createdAt
+					})
+				)
+
+				overpays.push({
+					from: fromUser,
+					to: toUser,
+					amount: Math.abs(balance),
+					payments: paymentDetails
+				})
+			}
+		}
 
 		// Створюємо структуру для акордеону з деталями боргів
 		const memberBalanceDetails: Array<{
@@ -642,13 +861,27 @@ export class GroupsService {
 		for (const member of group.members) {
 			const memberBalance = memberBalances.get(member.userId) || 0
 
+			// Розраховуємо скоригований баланс з урахуванням платежів
+			let adjustedBalance = memberBalance
+			for (const payment of groupPayments) {
+				if (payment.fromId === member.userId) {
+					// Member заплатив комусь - збільшує його баланс (додаємо)
+					adjustedBalance += payment.amount
+				}
+				if (payment.toId === member.userId) {
+					// Хтось заплатив member - зменшує його баланс (віднімаємо)
+					adjustedBalance -= payment.amount
+				}
+			}
+
 			// Додаємо тільки тих учасників, у яких баланс не дорівнює 0
 			if (memberBalance !== 0) {
-				// Знаходимо всі борги пов'язані з цим учасником
+				// Знаходимо всі активні борги пов'язані з цим учасником
 				const memberDebts = allDebts.filter(
 					debt =>
-						debt.creditorId === member.userId ||
-						debt.debtorId === member.userId
+						debt.isActual &&
+						(debt.creditorId === member.userId ||
+							debt.debtorId === member.userId)
 				)
 
 				// Групуємо борги по контрагентах
@@ -669,6 +902,9 @@ export class GroupsService {
 					if (debt.creditorId === member.userId) {
 						// Цьому учаснику винні
 						const existingDebt = debtDetails.get(debt.debtorId)
+						const debtorUser = usersMap.get(debt.debtorId)
+						if (!debtorUser) return
+
 						if (existingDebt) {
 							if (existingDebt.type === 'member_owes_to') {
 								// Є взаємний борг, зачищуємо
@@ -690,7 +926,7 @@ export class GroupsService {
 							}
 						} else {
 							debtDetails.set(debt.debtorId, {
-								user: debt.debtor,
+								user: debtorUser,
 								amount: debt.remaining,
 								type: 'owes_to_member'
 							})
@@ -698,6 +934,9 @@ export class GroupsService {
 					} else if (debt.debtorId === member.userId) {
 						// Цей учасник винен
 						const existingDebt = debtDetails.get(debt.creditorId)
+						const creditorUser = usersMap.get(debt.creditorId)
+						if (!creditorUser) return
+
 						if (existingDebt) {
 							if (existingDebt.type === 'owes_to_member') {
 								// Є взаємний борг, зачищуємо
@@ -719,7 +958,7 @@ export class GroupsService {
 							}
 						} else {
 							debtDetails.set(debt.creditorId, {
-								user: debt.creditor,
+								user: creditorUser,
 								amount: debt.remaining,
 								type: 'member_owes_to'
 							})
@@ -727,16 +966,40 @@ export class GroupsService {
 					}
 				})
 
+				// Віднімаємо платежі від боргів в деталях
+				for (const payment of groupPayments) {
+					// Якщо member заплатив комусь
+					if (payment.fromId === member.userId) {
+						const debtDetail = debtDetails.get(payment.toId)
+						if (
+							debtDetail &&
+							debtDetail.type === 'member_owes_to'
+						) {
+							debtDetail.amount -= payment.amount
+						}
+					}
+					// Якщо хтось заплатив member
+					if (payment.toId === member.userId) {
+						const debtDetail = debtDetails.get(payment.fromId)
+						if (
+							debtDetail &&
+							debtDetail.type === 'owes_to_member'
+						) {
+							debtDetail.amount -= payment.amount
+						}
+					}
+				}
+
 				// Конвертуємо Map в масив і фільтруємо нульові борги
 				const debtDetailsArray = Array.from(
 					debtDetails.values()
-				).filter(detail => detail.amount > 0)
+				).filter(detail => detail.amount > 0.01)
 
 				if (debtDetailsArray.length > 0) {
 					memberBalanceDetails.push({
 						user: member.user,
 						role: member.role,
-						totalBalance: memberBalance,
+						totalBalance: adjustedBalance,
 						debtDetails: debtDetailsArray
 					})
 				}
@@ -747,11 +1010,11 @@ export class GroupsService {
 			...group,
 			expenses: expensesWithBalance,
 			totalExpenses,
+			userTotalExpenses,
 			userTotalBalance,
 			memberBalanceDetails, // <-- Додано нове поле для акордеону
 			paymentsBetweenMembers,
 			overpays
-			// платежі
 		} as GroupWithMembers
 	}
 
@@ -780,5 +1043,239 @@ export class GroupsService {
 		} else {
 			return ''
 		}
+	}
+
+	/**
+	 * Включення режиму спрощення боргів для групи
+	 * Викликається тільки адміном групи
+	 * Незворотна операція!
+	 */
+	public async enableDebtSimplification(
+		groupId: string,
+		userId: string
+	): Promise<{ success: boolean; debtsCount: number }> {
+		// Перевірка: користувач є ADMIN
+		const userGroupAdmin = await this.prismaService.groupMember.findFirst({
+			where: {
+				userId: userId,
+				groupId: groupId,
+				role: 'ADMIN'
+			}
+		})
+
+		if (!userGroupAdmin) {
+			throw new BadRequestException(
+				this.i18n.t('common.groups.errors.not_group_admin', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
+		// Перевірка: група ще не спрощена
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: groupId },
+			select: { isSimplified: true }
+		})
+
+		if (!group) {
+			throw new BadRequestException(
+				this.i18n.t('common.groups.errors.group_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
+		if (group.isSimplified) {
+			throw new BadRequestException('Group debts are already simplified')
+		}
+
+		// Створити технічну витрату та включити режим
+		return await this.prismaService.$transaction(async tx => {
+			// Створюємо технічну витрату
+			const systemExpense = await tx.expense.create({
+				data: {
+					groupId,
+					creatorId: userId,
+					amount: 0,
+					description: 'Simplified debts',
+					splitType: 'EQUAL',
+					date: new Date()
+				}
+			})
+
+			// Позначаємо групу як спрощену
+			await tx.groupEntity.update({
+				where: { id: groupId },
+				data: {
+					isSimplified: true,
+					simplifiedAt: new Date(),
+					simplifiedBy: userId,
+					simplificationExpenseId: systemExpense.id
+				}
+			})
+
+			// Спрощуємо всі існуючі борги (використовуємо поточну транзакцію)
+			await this.simplifyDebtsInTransaction(tx, groupId, systemExpense.id)
+
+			// Рахуємо кількість нових боргів
+			const newDebtsCount = await tx.debt.count({
+				where: {
+					expenseId: systemExpense.id,
+					isActual: true
+				}
+			})
+
+			return { success: true, debtsCount: newDebtsCount }
+		})
+	}
+
+	/**
+	 * Пересимпліфікація всіх боргів у групі
+	 * Викликається при включенні режиму та після кожної нової витрати
+	 */
+	public async simplifyAllDebts(
+		groupId: string,
+		systemExpenseId: string
+	): Promise<void> {
+		await this.prismaService.$transaction(async tx => {
+			await this.simplifyDebtsInTransaction(tx, groupId, systemExpenseId)
+		})
+	}
+
+	/**
+	 * Внутрішній метод для спрощення боргів всередині транзакції
+	 */
+	private async simplifyDebtsInTransaction(
+		tx: Prisma.TransactionClient,
+		groupId: string,
+		systemExpenseId: string
+	): Promise<void> {
+		// 1. Отримати ВСІ борги зі звичайних витрат з remaining > 0
+		const activeDebts = await tx.debt.findMany({
+			where: {
+				expense: {
+					groupId,
+					id: { not: systemExpenseId }
+				},
+				remaining: {
+					gt: 0
+				}
+			},
+			select: {
+				id: true,
+				debtorId: true,
+				creditorId: true,
+				remaining: true
+			}
+		})
+
+		// 2. Обчислити баланси з УСІХ боргів зі звичайних витрат (БЕЗ врахування платежів)
+		const balances = new Map<string, number>()
+
+		for (const debt of activeDebts) {
+			if (debt.remaining > 0) {
+				balances.set(
+					debt.creditorId,
+					(balances.get(debt.creditorId) || 0) + debt.remaining
+				)
+				balances.set(
+					debt.debtorId,
+					(balances.get(debt.debtorId) || 0) - debt.remaining
+				)
+			}
+		}
+
+		// 3. Застосувати алгоритм спрощення (БЕЗ врахування платежів)
+		const simplifiedDebts = this.calculateSimplifiedDebts(balances)
+
+		// 4. Деактивувати всі борги зі звичайних витрат
+		await tx.debt.updateMany({
+			where: {
+				expense: {
+					groupId,
+					id: { not: systemExpenseId }
+				}
+			},
+			data: { isActual: false }
+		})
+
+		// 5. Видалити всі старі спрощені борги
+		await tx.debt.deleteMany({
+			where: {
+				expenseId: systemExpenseId
+			}
+		})
+
+		// 6. Створити нові спрощені борги
+		for (const newDebt of simplifiedDebts) {
+			await tx.debt.create({
+				data: {
+					expenseId: systemExpenseId,
+					debtorId: newDebt.debtorId,
+					creditorId: newDebt.creditorId,
+					amount: newDebt.amount,
+					remaining: newDebt.amount,
+					status: 'PENDING',
+					isActual: true
+				}
+			})
+		}
+	}
+
+	/**
+	 * Алгоритм спрощення боргів - жадібний підхід
+	 * Мінімізує кількість транзакцій між учасниками
+	 */
+	private calculateSimplifiedDebts(
+		balances: Map<string, number>
+	): Array<{ debtorId: string; creditorId: string; amount: number }> {
+		const debtors: Array<{ userId: string; amount: number }> = []
+		const creditors: Array<{ userId: string; amount: number }> = []
+
+		// Розділити на боржників і кредиторів
+		for (const [userId, balance] of balances.entries()) {
+			if (balance < -0.01) {
+				// Боржники (негативний баланс)
+				debtors.push({ userId, amount: -balance })
+			} else if (balance > 0.01) {
+				// Кредитори (позитивний баланс)
+				creditors.push({ userId, amount: balance })
+			}
+		}
+
+		// Сортувати за спаданням для оптимізації
+		debtors.sort((a, b) => b.amount - a.amount)
+		creditors.sort((a, b) => b.amount - a.amount)
+
+		// Жадібний алгоритм мінімізації
+		const result: Array<{
+			debtorId: string
+			creditorId: string
+			amount: number
+		}> = []
+
+		let i = 0,
+			j = 0
+
+		while (i < debtors.length && j < creditors.length) {
+			const debtor = debtors[i]
+			const creditor = creditors[j]
+
+			const amount = Math.min(debtor.amount, creditor.amount)
+
+			result.push({
+				debtorId: debtor.userId,
+				creditorId: creditor.userId,
+				amount: Math.round(amount * 100) / 100 // округлення до 2 знаків
+			})
+
+			debtor.amount -= amount
+			creditor.amount -= amount
+
+			if (debtor.amount < 0.01) i++
+			if (creditor.amount < 0.01) j++
+		}
+
+		return result
 	}
 }

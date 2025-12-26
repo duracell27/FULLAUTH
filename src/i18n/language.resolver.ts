@@ -20,8 +20,11 @@ export class UserPreferredLanguageResolver implements I18nResolver {
 			req?.cookies?.lang ||
 			req?.headers?.['accept-language']?.split(',')[0]?.split('-')[0]
 
+		// Конвертуємо в нижній регістр для сумісності
+		const normalizedLanguage = language?.toLowerCase()
+
 		// Повертаємо тільки валідні мови, інакше undefined
-		return language &&
+		return normalizedLanguage &&
 			[
 				'en',
 				'uk',
@@ -33,8 +36,8 @@ export class UserPreferredLanguageResolver implements I18nResolver {
 				'tr',
 				'hi',
 				'zh'
-			].includes(language)
-			? language
+			].includes(normalizedLanguage)
+			? normalizedLanguage
 			: undefined
 	}
 }

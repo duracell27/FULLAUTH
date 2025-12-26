@@ -2,7 +2,7 @@ import { PrismaService } from '@/prisma/prisma.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { FriendStatus } from '@prisma/client'
 import { NotificationsService } from '../notifications/notifications.service'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
 
 @Injectable()
 export class FriendsService {
@@ -58,7 +58,9 @@ export class FriendsService {
 	public async sendFriendRequest(receiverId: string, senderId: string) {
 		if (receiverId === senderId) {
 			throw new BadRequestException(
-				this.i18n.t('friends.errors.cannot_send_to_self')
+				this.i18n.t('common.friends.errors.cannot_send_to_self', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 		const isFrendRequestExists =
@@ -81,7 +83,9 @@ export class FriendsService {
 
 		if (isFrendRequestExists) {
 			throw new BadRequestException(
-				this.i18n.t('friends.errors.request_already_exists')
+				this.i18n.t('common.friends.errors.request_already_exists', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -106,7 +110,9 @@ export class FriendsService {
 
 		if (isAlreadyFriends) {
 			throw new BadRequestException(
-				this.i18n.t('friends.errors.already_friends')
+				this.i18n.t('common.friends.errors.already_friends', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -149,7 +155,9 @@ export class FriendsService {
 
 		if (!isFriendRequestExists) {
 			throw new BadRequestException(
-				this.i18n.t('friends.errors.request_not_found')
+				this.i18n.t('common.friends.errors.request_not_found', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -177,7 +185,9 @@ export class FriendsService {
 
 		if (!isFriendRequestExists) {
 			throw new BadRequestException(
-				this.i18n.t('friends.errors.request_not_found')
+				this.i18n.t('common.friends.errors.request_not_found', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 
@@ -214,7 +224,9 @@ export class FriendsService {
 
 		if (!isFriendRequestExists) {
 			throw new BadRequestException(
-				this.i18n.t('friends.errors.request_not_found')
+				this.i18n.t('common.friends.errors.request_not_found', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 

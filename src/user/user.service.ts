@@ -4,7 +4,7 @@ import {
 	Injectable,
 	NotFoundException
 } from '@nestjs/common'
-import { I18nService } from 'nestjs-i18n'
+import { I18nService, I18nContext } from 'nestjs-i18n'
 import { AuthMethod } from '@prisma/client'
 import { hash } from 'argon2'
 import { UpdateUserDto } from './dto/update-user.dto'
@@ -27,7 +27,11 @@ export class UserService {
 		})
 
 		if (!user) {
-			throw new NotFoundException(this.i18n.t('errors.user_not_found'))
+			throw new NotFoundException(
+				this.i18n.t('common.errors.user_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
 		}
 
 		return user
@@ -47,7 +51,11 @@ export class UserService {
 		})
 
 		if (!user) {
-			throw new NotFoundException(this.i18n.t('errors.user_not_found'))
+			throw new NotFoundException(
+				this.i18n.t('common.errors.user_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
 		}
 
 		return user
@@ -155,13 +163,19 @@ export class UserService {
 		]
 		if (!validLanguages.includes(language)) {
 			throw new BadRequestException(
-				this.i18n.t('errors.invalid_language')
+				this.i18n.t('common.errors.invalid_language', {
+					lang: I18nContext.current()?.lang
+				})
 			)
 		}
 		const user = await this.findById(userId)
 
 		if (!user) {
-			throw new NotFoundException(this.i18n.t('errors.user_not_found'))
+			throw new NotFoundException(
+				this.i18n.t('common.errors.user_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
 		}
 
 		const updatedUser = await this.prismaService.user.update({
