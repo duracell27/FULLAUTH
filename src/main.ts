@@ -28,6 +28,21 @@ async function bootstrap() {
 		})
 	)
 
+	const sessionDomain = config.get<string>('SESSION_DOMAIN')
+	const cookieConfig: any = {
+		maxAge: ms(config.getOrThrow<StringValue>('SESSION_MAX_AGE')),
+		httpOnly: parseBoolean(
+			config.getOrThrow<string>('SESSION_HTTP_ONLY')
+		),
+		secure: parseBoolean(config.getOrThrow<string>('SESSION_SECURE')),
+		sameSite: 'lax'
+	}
+
+	// Додаємо domain тільки якщо він не порожній
+	if (sessionDomain) {
+		cookieConfig.domain = sessionDomain
+	}
+
 	app.use(
 		session({
 			secret: config.getOrThrow<string>('SESSION_SECRET'),
@@ -35,17 +50,7 @@ async function bootstrap() {
 			resave: true,
 			unset: 'destroy',
 			saveUninitialized: false,
-			cookie: {
-				domain: config.getOrThrow<string>('SESSION_DOMAIN'),
-				maxAge: ms(config.getOrThrow<StringValue>('SESSION_MAX_AGE')),
-				httpOnly: parseBoolean(
-					config.getOrThrow<string>('SESSION_HTTP_ONLY')
-				),
-				secure: parseBoolean(
-					config.getOrThrow<string>('SESSION_SECURE')
-				),
-				sameSite: 'lax'
-			},
+			cookie: cookieConfig,
 			store: new RedisStore({
 				client: redis,
 				prefix: config.getOrThrow<string>('SESSION_FOLDER')

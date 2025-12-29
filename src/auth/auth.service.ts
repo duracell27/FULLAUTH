@@ -18,6 +18,7 @@ import { ProviderService } from './provider/provider.service'
 import { PrismaService } from '@/prisma/prisma.service'
 import { EmailConfirmationService } from './email-confirmation/email-confirmation.service'
 import { TwoFactorAuthService } from './two-factor-auth/two-factor-auth.service'
+import { parseBoolean } from '@/libs/common/utils/parse-boolean'
 
 @Injectable()
 export class AuthService {
@@ -203,30 +204,25 @@ export class AuthService {
 
 				const sessionName =
 					this.configService.getOrThrow<string>('SESSION_NAME')
-				const cookieOptions = {
-					domain: this.configService.getOrThrow<string>(
-						'SESSION_DOMAIN'
+
+				// Не передаємо domain взагалі для logout
+				const cookieOptions: any = {
+					path: this.configService.get<string>('SESSION_PATH', '/'),
+					httpOnly: parseBoolean(
+						this.configService.getOrThrow<string>('SESSION_HTTP_ONLY')
 					),
-					path: this.configService.get<string>('SESSION_PATH', '/'), // Якщо у вас є SESSION_PATH, інакше '/'
-					httpOnly: this.configService.getOrThrow<boolean>(
-						'SESSION_HTTP_ONLY',
-						{ infer: true }
-					), // infer: true для parseBoolean
-					secure: this.configService.getOrThrow<boolean>(
-						'SESSION_SECURE',
-						{ infer: true }
-					), // infer: true для parseBoolean
-					sameSite: this.configService.get<'lax' | 'strict' | 'none'>(
-						'SESSION_SAMESITE',
-						'none'
-					)
+					secure: parseBoolean(
+						this.configService.getOrThrow<string>('SESSION_SECURE')
+					),
+					sameSite: 'lax' as const,
+					expires: new Date(0),
+					maxAge: 0
 				}
 
 				res.clearCookie(sessionName, cookieOptions)
 
-				// Перевірка, чи заголовок був встановлений (це може не працювати надійно до того, як відповідь буде надіслана)
-				// const headers = res.getHeaders();
-				// this.logger.log('Response headers after clearCookie (may not be final):', headers['set-cookie']);
+				// Додатково встановлюємо cookie з порожнім значенням
+				res.cookie(sessionName, '', cookieOptions)
 
 				resolve()
 			})
