@@ -167,6 +167,7 @@ export type I18nTranslations = {
                 "required_fields_missing": string;
                 "no_debts_found": string;
                 "no_payments_found": string;
+                "group_is_finished": string;
             };
             "notifications": {
                 "debt_settled": {

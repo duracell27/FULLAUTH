@@ -101,7 +101,8 @@
       "amount_too_large": "La cantidad es mayor que la suma de todas las deudas",
       "required_fields_missing": "Faltan campos obligatorios para eliminar el pago de deuda",
       "no_debts_found": "No se encontraron deudas entre estos usuarios en este grupo",
-      "no_payments_found": "No se encontraron pagos para eliminar"
+      "no_payments_found": "No se encontraron pagos para eliminar",
+      "group_is_finished": "No se pueden agregar o eliminar pagos en un grupo finalizado"
     },
     "notifications": {
       "debt_settled": {

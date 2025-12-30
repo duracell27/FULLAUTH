@@ -101,7 +101,8 @@
       "amount_too_large": "Miktar tüm borçların toplamından büyük",
       "required_fields_missing": "Borç ödemesini silmek için gerekli alanlar eksik",
       "no_debts_found": "Bu gruptaki bu kullanıcılar arasında borç bulunamadı",
-      "no_payments_found": "Silinecek ödeme bulunamadı"
+      "no_payments_found": "Silinecek ödeme bulunamadı",
+      "group_is_finished": "Tamamlanmış bir grupta ödeme eklenemez veya silinemez"
     },
     "notifications": {
       "debt_settled": {

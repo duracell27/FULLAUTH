@@ -101,7 +101,8 @@
       "amount_too_large": "金额大于所有债务的总和",
       "required_fields_missing": "删除债务支付所需的字段缺失",
       "no_debts_found": "在此群组中这些用户之间未找到债务",
-      "no_payments_found": "未找到要删除的付款"
+      "no_payments_found": "未找到要删除的付款",
+      "group_is_finished": "无法在已完成的群组中添加或删除付款"
     },
     "notifications": {
       "debt_settled": {

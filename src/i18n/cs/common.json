@@ -101,7 +101,8 @@
       "amount_too_large": "Částka je větší než součet všech dluhů",
       "required_fields_missing": "Chybí povinná pole pro odstranění platby dluhu",
       "no_debts_found": "Mezi těmito uživateli v této skupině nebyly nalezeny žádné dluhy",
-      "no_payments_found": "Nebyly nalezeny žádné platby k odstranění"
+      "no_payments_found": "Nebyly nalezeny žádné platby k odstranění",
+      "group_is_finished": "Nelze přidat nebo smazat platby v dokončené skupině"
     },
     "notifications": {
       "debt_settled": {

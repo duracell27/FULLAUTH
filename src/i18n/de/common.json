@@ -101,7 +101,8 @@
       "amount_too_large": "Betrag ist größer als die Summe aller Schulden",
       "required_fields_missing": "Erforderliche Felder zum Löschen der Schuldenzahlung fehlen",
       "no_debts_found": "Keine Schulden zwischen diesen Benutzern in dieser Gruppe gefunden",
-      "no_payments_found": "Keine zu löschenden Zahlungen gefunden"
+      "no_payments_found": "Keine zu löschenden Zahlungen gefunden",
+      "group_is_finished": "Zahlungen in einer abgeschlossenen Gruppe können nicht hinzugefügt oder gelöscht werden"
     },
     "notifications": {
       "debt_settled": {

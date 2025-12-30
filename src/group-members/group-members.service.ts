@@ -45,8 +45,36 @@ export class GroupMembersService {
 		type: 'active' | 'finished',
 		limit: number = 10,
 		offset: number = 0
-	): Promise<PartialGroupExtended[]> {
+	): Promise<{
+		groups: PartialGroupExtended[]
+		activeCount: number
+		finishedCount: number
+	}> {
 		const isFinished = type === 'finished'
+
+		// Підрахунок активних груп
+		const activeCount = await this.prismaService.groupMember.count({
+			where: {
+				userId: userId,
+				status: GroupMemberStatus.ACCEPTED,
+				group: {
+					isFinished: false,
+					isPersonal: false
+				}
+			}
+		})
+
+		// Підрахунок завершених груп
+		const finishedCount = await this.prismaService.groupMember.count({
+			where: {
+				userId: userId,
+				status: GroupMemberStatus.ACCEPTED,
+				group: {
+					isFinished: true,
+					isPersonal: false
+				}
+			}
+		})
 
 		const groupMembers = await this.prismaService.groupMember.findMany({
 			where: {
@@ -155,7 +183,11 @@ export class GroupMembersService {
 			})
 		)
 
-		return groupsWithBalance
+		return {
+			groups: groupsWithBalance,
+			activeCount,
+			finishedCount
+		}
 	}
 
 	public async getUserPersonalGroups(
@@ -163,8 +195,36 @@ export class GroupMembersService {
 		type: 'active' | 'finished',
 		limit: number = 10,
 		offset: number = 0
-	): Promise<PartialGroupExtended[]> {
+	): Promise<{
+		groups: PartialGroupExtended[]
+		activeCount: number
+		finishedCount: number
+	}> {
 		const isFinished = type === 'finished'
+
+		// Підрахунок активних персональних груп
+		const activeCount = await this.prismaService.groupMember.count({
+			where: {
+				userId: userId,
+				status: GroupMemberStatus.ACCEPTED,
+				group: {
+					isFinished: false,
+					isPersonal: true
+				}
+			}
+		})
+
+		// Підрахунок завершених персональних груп
+		const finishedCount = await this.prismaService.groupMember.count({
+			where: {
+				userId: userId,
+				status: GroupMemberStatus.ACCEPTED,
+				group: {
+					isFinished: true,
+					isPersonal: true
+				}
+			}
+		})
 
 		const groupMembers = await this.prismaService.groupMember.findMany({
 			where: {
@@ -271,7 +331,11 @@ export class GroupMembersService {
 			})
 		)
 
-		return groupsWithBalance
+		return {
+			groups: groupsWithBalance,
+			activeCount,
+			finishedCount
+		}
 	}
 
 	public async getUserGroupRequests(userId: string): Promise<PartialGroup[]> {

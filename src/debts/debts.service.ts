@@ -35,6 +35,28 @@ export class DebtsService {
 				})
 			)
 
+		// Перевіряємо, чи група не завершена
+		const groupCheck = await this.prismaService.groupEntity.findUnique({
+			where: { id: dto.groupId },
+			select: { isFinished: true }
+		})
+
+		if (!groupCheck) {
+			throw new NotFoundException(
+				this.i18n.t('common.groups.errors.group_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
+		if (groupCheck.isFinished) {
+			throw new BadRequestException(
+				this.i18n.t('common.debts.payment.group_is_finished', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
 		const isUserGroupMember =
 			await this.groupMembersService.isUserGroupMember(
 				userId,
@@ -218,6 +240,28 @@ export class DebtsService {
 					lang: I18nContext.current()?.lang
 				})
 			)
+
+		// Перевіряємо, чи група не завершена
+		const groupCheck = await this.prismaService.groupEntity.findUnique({
+			where: { id: payment.groupId },
+			select: { isFinished: true }
+		})
+
+		if (!groupCheck) {
+			throw new NotFoundException(
+				this.i18n.t('common.groups.errors.group_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
+		if (groupCheck.isFinished) {
+			throw new BadRequestException(
+				this.i18n.t('common.debts.payment.group_is_finished', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
 
 		// Перевіряємо чи користувач є учасником групи
 		const isUserGroupMember =

@@ -25,11 +25,16 @@ export interface UserBalance {
 	groups: GroupBalance[]
 }
 
+export interface SummaryResponse {
+	userBalances: UserBalance[]
+	totalBalance: number
+}
+
 @Injectable()
 export class SummaryService {
 	public constructor(private readonly prismaService: PrismaService) {}
 
-	public async findDataForSummary(userId: string): Promise<UserBalance[]> {
+	public async findDataForSummary(userId: string): Promise<SummaryResponse> {
 		// 1. Отримуємо всі борги, пов'язані з користувачем
 		const debts = await this.prismaService.debt.findMany({
 			where: {
@@ -160,7 +165,7 @@ export class SummaryService {
 		}
 
 		// 4. Форматуємо результат у зручний для фронтенду масив
-		const result: UserBalance[] = Array.from(balancesByUser.values()).map(
+		const userBalances: UserBalance[] = Array.from(balancesByUser.values()).map(
 			data => ({
 				user: {
 					id: data.user.id as string,
@@ -172,7 +177,16 @@ export class SummaryService {
 			})
 		)
 
-		return result
+		// 5. Розраховуємо загальний баланс (сума балансів з усіма користувачами)
+		const totalBalance = userBalances.reduce(
+			(sum, userBalance) => sum + userBalance.totalBalance,
+			0
+		)
+
+		return {
+			userBalances,
+			totalBalance
+		}
 	}
 
 	public async settleUpBalances(

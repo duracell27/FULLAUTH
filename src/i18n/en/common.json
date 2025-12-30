@@ -156,7 +156,8 @@
       "amount_too_large": "Amount is greater than the sum of all debts",
       "required_fields_missing": "Required fields for deleting debt payment are missing",
       "no_debts_found": "No debts found between these users in this group",
-      "no_payments_found": "No payments found to delete"
+      "no_payments_found": "No payments found to delete",
+      "group_is_finished": "Cannot add or delete payments in a finished group"
     },
     "notifications": {
       "debt_settled": {
