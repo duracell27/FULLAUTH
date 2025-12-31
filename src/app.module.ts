@@ -25,6 +25,7 @@ import { SummaryModule } from './summary/summary.module'
 import { DebtsModule } from './debts/debts.module'
 import { NotificationsModule } from './notifications/notifications.module'
 import { UserPreferredLanguageResolver } from './i18n/language.resolver'
+import { AdminModule } from './admin/admin.module'
 
 @Module({
 	imports: [
@@ -65,7 +66,8 @@ import { UserPreferredLanguageResolver } from './i18n/language.resolver'
 		ExpensesModule,
 		SummaryModule,
 		DebtsModule,
-		NotificationsModule
+		NotificationsModule,
+		AdminModule
 	],
 	providers: [UserPreferredLanguageResolver]
 })
