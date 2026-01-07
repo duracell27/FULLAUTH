@@ -211,12 +211,10 @@ export class FriendsService {
 					id: friendRequestId,
 					OR: [
 						{
-							senderId: senderId,
-							status: FriendStatus.PENDING
+							senderId: senderId
 						},
 						{
-							receiverId: senderId,
-							status: FriendStatus.PENDING
+							receiverId: senderId
 						}
 					]
 				}
