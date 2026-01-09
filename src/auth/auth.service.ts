@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
 	ConflictException,
 	Injectable,
@@ -10,7 +9,7 @@ import { I18nService, I18nContext } from 'nestjs-i18n'
 import { RegisterDto } from './dto/register.dto'
 import { UserService } from '@/user/user.service'
 import { AuthMethod, User } from '@prisma/client'
-import { Request, Response } from 'express'
+import { Request, Response, CookieOptions } from 'express'
 import { LoginDto } from './dto/login.dto'
 import { verify } from 'argon2'
 import { ConfigService } from '@nestjs/config'
@@ -188,7 +187,7 @@ export class AuthService {
 	public async logout(req: Request, res: Response): Promise<void> {
 		return new Promise((resolve, reject) => {
 			if (!req.session) {
-				return resolve() // Сесії немає, просто виходимо
+				return resolve()
 			}
 
 			req.session.destroy(err => {
@@ -204,25 +203,31 @@ export class AuthService {
 
 				const sessionName =
 					this.configService.getOrThrow<string>('SESSION_NAME')
+				const sessionDomain =
+					this.configService.get<string>('SESSION_DOMAIN')
 
-				// Не передаємо domain взагалі для logout
-				const cookieOptions: any = {
+				// Створюємо базові опції
+				const cookieOptions: CookieOptions = {
 					path: this.configService.get<string>('SESSION_PATH', '/'),
 					httpOnly: parseBoolean(
-						this.configService.getOrThrow<string>('SESSION_HTTP_ONLY')
+						this.configService.getOrThrow<string>(
+							'SESSION_HTTP_ONLY'
+						)
 					),
 					secure: parseBoolean(
 						this.configService.getOrThrow<string>('SESSION_SECURE')
 					),
-					sameSite: 'lax' as const,
-					expires: new Date(0),
-					maxAge: 0
+					sameSite: 'lax'
 				}
 
-				res.clearCookie(sessionName, cookieOptions)
+				// ВАЖЛИВО: Додаємо домен, якщо він був при створенні!
+				// Це виправить проблему на Prod (.lendower.com)
+				if (sessionDomain) {
+					cookieOptions.domain = sessionDomain
+				}
 
-				// Додатково встановлюємо cookie з порожнім значенням
-				res.cookie(sessionName, '', cookieOptions)
+				// clearCookie сам виставить expires/maxAge в минуле
+				res.clearCookie(sessionName, cookieOptions)
 
 				resolve()
 			})
