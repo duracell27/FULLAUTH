@@ -13,9 +13,12 @@ export const getMailerConfig = async (
 		auth: {
 			user: configService.getOrThrow<string>('MAIL_LOGIN'),
 			pass: configService.getOrThrow<string>('MAIL_PASSWORD')
-		}
+		},
+		pool: true,
+		logger: false
 	},
 	defaults: {
 		from: `"Shmidt Team" ${configService.getOrThrow<string>('MAIL_LOGIN')}`
-	}
+	},
+	preview: isDev(configService)
 })

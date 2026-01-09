@@ -47,10 +47,12 @@ import { AdminModule } from './admin/admin.module'
 				{ use: CookieResolver, options: ['lang'] },
 				HeaderResolver
 			],
-			typesOutputPath: path.join(
-				process.cwd(),
-				'src/generated/i18n.generated.ts'
-			)
+			...(IS_DEV_ENV && {
+				typesOutputPath: path.join(
+					process.cwd(),
+					'src/generated/i18n.generated.ts'
+				)
+			})
 		}),
 		PrismaModule,
 		AuthModule,
