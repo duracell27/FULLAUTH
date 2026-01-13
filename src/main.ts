@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { ConfigService } from '@nestjs/config'
@@ -15,11 +13,14 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule)
 
 	const config = app.get(ConfigService)
-	const redis = new IORedis(config.getOrThrow<string>('REDIS_URL'))
+	const redis = new IORedis(config.getOrThrow<string>('REDIS_URL'), {
+		db: config.get<number>('REDIS_DB')
+	})
 	app.use(cookieParser(config.getOrThrow<string>('COOKIES_SECRET')))
 
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 	const expressApp = app.getHttpAdapter().getInstance()
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 	expressApp.set('trust proxy', 1)
 
 	app.useGlobalPipes(
@@ -29,11 +30,9 @@ async function bootstrap() {
 	)
 
 	const sessionDomain = config.get<string>('SESSION_DOMAIN')
-	const cookieConfig: any = {
+	const cookieConfig: session.CookieOptions = {
 		maxAge: ms(config.getOrThrow<StringValue>('SESSION_MAX_AGE')),
-		httpOnly: parseBoolean(
-			config.getOrThrow<string>('SESSION_HTTP_ONLY')
-		),
+		httpOnly: parseBoolean(config.getOrThrow<string>('SESSION_HTTP_ONLY')),
 		secure: parseBoolean(config.getOrThrow<string>('SESSION_SECURE')),
 		sameSite: 'lax'
 	}
@@ -64,5 +63,5 @@ async function bootstrap() {
 	})
 	await app.listen(config.getOrThrow<number>('APPLICATION_PORT'))
 }
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-bootstrap()
+
+void bootstrap()
