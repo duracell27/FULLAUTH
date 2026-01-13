@@ -128,7 +128,8 @@ export class UserService {
 			data: {
 				displayName: dto.name,
 				email: dto.email,
-				isTwoFactorEnabled: dto.isTwoFactorEnabled
+				isTwoFactorEnabled: dto.isTwoFactorEnabled,
+				...(dto.picture !== undefined && { picture: dto.picture })
 			}
 		})
 

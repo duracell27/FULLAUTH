@@ -1,4 +1,10 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsString } from 'class-validator'
+import {
+	IsBoolean,
+	IsEmail,
+	IsNotEmpty,
+	IsOptional,
+	IsString
+} from 'class-validator'
 
 export class UpdateUserDto {
 	@IsString({ message: 'user.validation.name.string' })
@@ -12,4 +18,8 @@ export class UpdateUserDto {
 
 	@IsBoolean({ message: 'user.validation.is_two_factor_enabled.boolean' })
 	isTwoFactorEnabled: boolean
+
+	@IsString({ message: 'user.validation.picture.string' })
+	@IsOptional()
+	picture?: string
 }
