@@ -400,11 +400,12 @@ export class ExpensesService {
 		const expense = await this.prismaService.expense.findFirst({
 			where: {
 				id: expenseId,
-				// Перевіряємо, чи існує в групі учасник з таким userId
+				// Перевіряємо, чи існує в групі учасник з таким userId та статусом ACCEPTED
 				group: {
 					members: {
 						some: {
-							userId: userId
+							userId: userId,
+							status: 'ACCEPTED'
 						}
 					}
 				}

@@ -700,7 +700,8 @@ export class GroupMembersService {
 			where: {
 				userId: userId,
 				groupId: groupId,
-				role: 'ADMIN'
+				role: 'ADMIN',
+				status: GroupMemberStatus.ACCEPTED
 			}
 		})
 
@@ -709,7 +710,11 @@ export class GroupMembersService {
 
 	public async isUserGroupMember(userId: string, groupId: string) {
 		const isMember = await this.prismaService.groupMember.findFirst({
-			where: { userId: userId, groupId: groupId }
+			where: {
+				userId: userId,
+				groupId: groupId,
+				status: GroupMemberStatus.ACCEPTED
+			}
 		})
 
 		return !!isMember

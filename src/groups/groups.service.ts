@@ -515,8 +515,12 @@ export class GroupsService {
 			)
 		}
 
-		// Перевірка, чи є користувач у групі
-		const isMember = group.members.some(member => member.userId === userId)
+		// Перевірка, чи є користувач у групі з підтвердженим статусом
+		const isMember = group.members.some(
+			member =>
+				member.userId === userId &&
+				member.status === GroupMemberStatus.ACCEPTED
+		)
 		if (!isMember) {
 			throw new BadRequestException(
 				this.i18n.t('common.groups.errors.user_not_in_group', {
