@@ -143,6 +143,25 @@ export class AdminService {
 		}
 	}
 
+	public async getRecentUsers(userId: string) {
+		await this.verifyAdmin(userId)
+
+		const users = await this.prismaService.user.findMany({
+			take: 10,
+			orderBy: { createdAt: 'desc' },
+			select: {
+				id: true,
+				displayName: true,
+				email: true,
+				picture: true,
+				method: true,
+				createdAt: true
+			}
+		})
+
+		return users
+	}
+
 	public async getDashboardStatistics(userId: string) {
 		await this.verifyAdmin(userId)
 
@@ -155,7 +174,8 @@ export class AdminService {
 			totalExpensesCount,
 			lastMonthExpensesCount,
 			totalGroupsCount,
-			finishedGroupsCount
+			finishedGroupsCount,
+			recentUsers
 		] = await Promise.all([
 			this.prismaService.user.count(),
 			this.prismaService.user.count({
@@ -186,6 +206,18 @@ export class AdminService {
 			this.prismaService.groupEntity.count({
 				where: {
 					isFinished: true
+				}
+			}),
+			this.prismaService.user.findMany({
+				take: 10,
+				orderBy: { createdAt: 'desc' },
+				select: {
+					id: true,
+					displayName: true,
+					email: true,
+					picture: true,
+					method: true,
+					createdAt: true
 				}
 			})
 		])
@@ -227,7 +259,8 @@ export class AdminService {
 				finished: finishedGroupsCount,
 				active: totalGroupsCount - finishedGroupsCount
 			},
-			expenseTypeStatistics
+			expenseTypeStatistics,
+			recentUsers
 		}
 	}
 }
