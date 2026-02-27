@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException } from '@nestjs/common'
+import {
+	Injectable,
+	ForbiddenException,
+	NotFoundException,
+	BadRequestException
+} from '@nestjs/common'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UserRole } from '@prisma/client'
 import { I18nService, I18nContext } from 'nestjs-i18n'
@@ -141,6 +146,139 @@ export class AdminService {
 			total,
 			statistics: result
 		}
+	}
+
+	public async getUserStats(adminId: string, targetId: string) {
+		await this.verifyAdmin(adminId)
+
+		const user = await this.prismaService.user.findUnique({
+			where: { id: targetId }
+		})
+
+		if (!user) {
+			throw new NotFoundException('User not found')
+		}
+
+		const [
+			groupsCount,
+			expensesCreatedCount,
+			expensesPayerCount,
+			debtsCount,
+			paymentsCount
+		] = await Promise.all([
+			this.prismaService.groupMember.count({
+				where: { userId: targetId }
+			}),
+			this.prismaService.expense.count({
+				where: { creatorId: targetId }
+			}),
+			this.prismaService.expensePayment.count({
+				where: { payerId: targetId }
+			}),
+			this.prismaService.debt.count({
+				where: {
+					OR: [{ debtorId: targetId }, { creditorId: targetId }]
+				}
+			}),
+			this.prismaService.groupPayment.count({
+				where: {
+					OR: [
+						{ fromId: targetId },
+						{ toId: targetId },
+						{ creatorId: targetId }
+					]
+				}
+			})
+		])
+
+		return {
+			groupsCount,
+			expensesCreatedCount,
+			expensesAsPayerCount: expensesPayerCount,
+			debtsCount,
+			paymentsCount
+		}
+	}
+
+	public async deleteUser(adminId: string, targetId: string) {
+		await this.verifyAdmin(adminId)
+
+		if (adminId === targetId) {
+			throw new BadRequestException('You cannot delete yourself')
+		}
+
+		const user = await this.prismaService.user.findUnique({
+			where: { id: targetId },
+			select: { id: true, email: true }
+		})
+
+		if (!user) {
+			throw new NotFoundException('User not found')
+		}
+
+		const [
+			groupsCount,
+			expensesCreatedCount,
+			expensesPayerCount,
+			debtsCount,
+			paymentsCount
+		] = await Promise.all([
+			this.prismaService.groupMember.count({
+				where: { userId: targetId }
+			}),
+			this.prismaService.expense.count({
+				where: { creatorId: targetId }
+			}),
+			this.prismaService.expensePayment.count({
+				where: { payerId: targetId }
+			}),
+			this.prismaService.debt.count({
+				where: {
+					OR: [{ debtorId: targetId }, { creditorId: targetId }]
+				}
+			}),
+			this.prismaService.groupPayment.count({
+				where: {
+					OR: [
+						{ fromId: targetId },
+						{ toId: targetId },
+						{ creatorId: targetId }
+					]
+				}
+			})
+		])
+
+		const hasFinancialData =
+			groupsCount > 0 ||
+			expensesCreatedCount > 0 ||
+			expensesPayerCount > 0 ||
+			debtsCount > 0 ||
+			paymentsCount > 0
+
+		if (hasFinancialData) {
+			throw new BadRequestException(
+				'Cannot delete user with existing groups, expenses or payments'
+			)
+		}
+
+		await this.prismaService.$transaction([
+			this.prismaService.friendRequests.deleteMany({
+				where: {
+					OR: [{ senderId: targetId }, { receiverId: targetId }]
+				}
+			}),
+			this.prismaService.token.deleteMany({
+				where: { email: user.email }
+			}),
+			this.prismaService.account.deleteMany({
+				where: { userId: targetId }
+			}),
+			this.prismaService.user.delete({
+				where: { id: targetId }
+			})
+		])
+
+		return { message: 'User deleted successfully' }
 	}
 
 	public async getRecentUsers(userId: string) {

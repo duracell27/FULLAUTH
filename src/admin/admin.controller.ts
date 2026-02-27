@@ -1,4 +1,11 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
+import {
+	Controller,
+	Delete,
+	Get,
+	HttpCode,
+	HttpStatus,
+	Param
+} from '@nestjs/common'
 import { AdminService } from './admin.service'
 import { Authorization } from '@/auth/decorators/auth.decorator'
 import { Authorized } from '@/auth/decorators/authorized.decorator'
@@ -34,6 +41,26 @@ export class AdminController {
 	@Get('groups/count')
 	public async getGroupsCount(@Authorized('id') userId: string) {
 		return this.adminService.getGroupsCount(userId)
+	}
+
+	@Authorization(UserRole.ADMIN)
+	@HttpCode(HttpStatus.OK)
+	@Get('users/:id/stats')
+	public async getUserStats(
+		@Authorized('id') adminId: string,
+		@Param('id') targetId: string
+	) {
+		return this.adminService.getUserStats(adminId, targetId)
+	}
+
+	@Authorization(UserRole.ADMIN)
+	@HttpCode(HttpStatus.OK)
+	@Delete('users/:id')
+	public async deleteUser(
+		@Authorized('id') adminId: string,
+		@Param('id') targetId: string
+	) {
+		return this.adminService.deleteUser(adminId, targetId)
 	}
 
 	@Authorization(UserRole.ADMIN)
