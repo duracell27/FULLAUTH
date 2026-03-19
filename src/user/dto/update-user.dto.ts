@@ -1,10 +1,12 @@
 import {
 	IsBoolean,
 	IsEmail,
+	IsEnum,
 	IsNotEmpty,
 	IsOptional,
 	IsString
 } from 'class-validator'
+import { CardVisibility } from '@prisma/client'
 
 export class UpdateUserDto {
 	@IsString({ message: 'user.validation.name.string' })
@@ -22,4 +24,12 @@ export class UpdateUserDto {
 	@IsString({ message: 'user.validation.picture.string' })
 	@IsOptional()
 	picture?: string
+
+	@IsString()
+	@IsOptional()
+	cardNumber?: string | null
+
+	@IsEnum(CardVisibility)
+	@IsOptional()
+	cardVisibility?: CardVisibility
 }

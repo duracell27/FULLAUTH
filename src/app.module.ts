@@ -26,6 +26,7 @@ import { DebtsModule } from './debts/debts.module'
 import { NotificationsModule } from './notifications/notifications.module'
 import { UserPreferredLanguageResolver } from './i18n/language.resolver'
 import { AdminModule } from './admin/admin.module'
+import { CardRequestsModule } from './card-requests/card-requests.module'
 
 @Module({
 	imports: [
@@ -69,7 +70,8 @@ import { AdminModule } from './admin/admin.module'
 		SummaryModule,
 		DebtsModule,
 		NotificationsModule,
-		AdminModule
+		AdminModule,
+		CardRequestsModule
 	],
 	providers: [UserPreferredLanguageResolver]
 })

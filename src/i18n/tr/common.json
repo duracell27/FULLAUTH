@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "İlgili borç ID'si geçerli bir UUID olmalı."
       }
+    },
+    "card_request": {
+      "title": "Kart numarası isteği",
+      "message": "{{requesterName}} kart numaranıza erişim istiyor"
+    },
+    "card_request_approved": {
+      "title": "Kart isteği onaylandı",
+      "message": "{{targetName}} kart numarası isteğinizi onayladı"
+    },
+    "card_request_denied": {
+      "title": "Kart isteği reddedildi",
+      "message": "{{targetName}} kart numarası isteğinizi reddetti"
     }
   },
   "auth": {

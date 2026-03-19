@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "Související ID dluhu musí být platné UUID."
       }
+    },
+    "card_request": {
+      "title": "Žádost o číslo karty",
+      "message": "{{requesterName}} žádá o přístup k vašemu číslu karty"
+    },
+    "card_request_approved": {
+      "title": "Žádost o kartu schválena",
+      "message": "{{targetName}} schválil vaši žádost o číslo karty"
+    },
+    "card_request_denied": {
+      "title": "Žádost o kartu zamítnuta",
+      "message": "{{targetName}} zamítl vaši žádost o číslo karty"
     }
   },
   "auth": {

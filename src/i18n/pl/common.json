@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "Powiązane ID długu musi być prawidłowym UUID."
       }
+    },
+    "card_request": {
+      "title": "Prośba o numer karty",
+      "message": "{{requesterName}} prosi o dostęp do Twojego numeru karty"
+    },
+    "card_request_approved": {
+      "title": "Prośba o kartę zatwierdzona",
+      "message": "{{targetName}} zatwierdził Twoją prośbę o numer karty"
+    },
+    "card_request_denied": {
+      "title": "Prośba o kartę odrzucona",
+      "message": "{{targetName}} odrzucił Twoją prośbę o numer karty"
     }
   },
   "auth": {

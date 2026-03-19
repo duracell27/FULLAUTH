@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "संबंधित कर्ज ID एक वैध UUID होना चाहिए।"
       }
+    },
+    "card_request": {
+      "title": "कार्ड नंबर अनुरोध",
+      "message": "{{requesterName}} आपके कार्ड नंबर तक पहुंच का अनुरोध कर रहे हैं"
+    },
+    "card_request_approved": {
+      "title": "कार्ड अनुरोध स्वीकृत",
+      "message": "{{targetName}} ने आपका कार्ड नंबर अनुरोध स्वीकृत किया"
+    },
+    "card_request_denied": {
+      "title": "कार्ड अनुरोध अस्वीकृत",
+      "message": "{{targetName}} ने आपका कार्ड नंबर अनुरोध अस्वीकृत किया"
     }
   },
   "auth": {

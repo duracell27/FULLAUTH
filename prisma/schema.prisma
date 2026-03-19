@@ -17,6 +17,8 @@ model User {
   method                 AuthMethod
   role                   UserRole         @default(REGULAR)
   language               Language         @default(EN)
+  cardNumber             String?          @map("card_number")
+  cardVisibility         CardVisibility   @default(EVERYONE) @map("card_visibility")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
   accounts               Account[]
@@ -26,6 +28,8 @@ model User {
   expensesCreated        Expense[]        @relation("ExpenseCreator")
   receivedFriendRequests FriendRequests[] @relation("ReceivedFriendRequests")
   sentFriendRequests     FriendRequests[] @relation("SentFriendRequests")
+  cardRequestsSent       CardRequest[]    @relation("CardRequestsSent")
+  cardRequestsReceived   CardRequest[]    @relation("CardRequestsReceived")
   groupMemberships       GroupMember[]
   notifications          Notification[]
   paymentsFrom           GroupPayment[]   @relation("PaymentFrom")
@@ -181,6 +185,20 @@ model GroupPayment {
   @@map("group_payments")
 }
 
+model CardRequest {
+  id          String            @id @default(uuid())
+  requesterId String            @map("requester_id")
+  targetId    String            @map("target_id")
+  status      CardRequestStatus @default(PENDING)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  requester   User              @relation("CardRequestsSent", fields: [requesterId], references: [id], onDelete: Cascade)
+  target      User              @relation("CardRequestsReceived", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, targetId])
+  @@map("card_requests")
+}
+
 model Notification {
   id        String           @id @default(uuid())
   userId    String           @map("user_id")
@@ -265,11 +283,26 @@ enum SplitType {
   EXTRA
 }
 
+enum CardVisibility {
+  EVERYONE
+  FRIENDS_ONLY
+  ON_REQUEST
+}
+
+enum CardRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
 enum NotificationType {
-  FRIEND_REQUEST //yes
-  GROUP_INVITATION //yes
-  EXPENSE_ADDED //yes
-  DEBT_CREATED //yes
-  DEBT_SETTLED //yes
-  USER_REMOVED_FROM_GROUP //yes
+  FRIEND_REQUEST
+  GROUP_INVITATION
+  EXPENSE_ADDED
+  DEBT_CREATED
+  DEBT_SETTLED
+  USER_REMOVED_FROM_GROUP
+  CARD_REQUEST
+  CARD_REQUEST_APPROVED
+  CARD_REQUEST_DENIED
 }

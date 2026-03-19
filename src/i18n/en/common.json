@@ -5,7 +5,7 @@
       "message": "{{senderName}} sent you a friend request"
     },
     "group_invitation": {
-      "title": "Group invitation", 
+      "title": "Group invitation",
       "message": "{{inviterName}} invited you to the group \"{{groupName}}\""
     },
     "expense_added": {
@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "Related debt ID must be a valid UUID."
       }
+    },
+    "card_request": {
+      "title": "Card number request",
+      "message": "{{requesterName}} is requesting access to your card number"
+    },
+    "card_request_approved": {
+      "title": "Card request approved",
+      "message": "{{targetName}} approved your card number request"
+    },
+    "card_request_denied": {
+      "title": "Card request denied",
+      "message": "{{targetName}} denied your card number request"
     }
   },
   "auth": {
@@ -199,7 +211,7 @@
         "message": "You owe {{amount}} for the expense \"{{expenseDescription}}\""
       },
       "new_credit": {
-        "title": "New credit", 
+        "title": "New credit",
         "message": "You get back {{amount}} for the expense \"{{expenseDescription}}\""
       }
     }

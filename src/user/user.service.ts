@@ -8,6 +8,10 @@ import { I18nService, I18nContext } from 'nestjs-i18n'
 import { AuthMethod } from '@prisma/client'
 import { hash } from 'argon2'
 import { UpdateUserDto } from './dto/update-user.dto'
+import {
+	encryptCardNumber,
+	decryptCardNumber
+} from '@/libs/common/utils/card-crypto.util'
 
 @Injectable()
 export class UserService {
@@ -34,7 +38,12 @@ export class UserService {
 			)
 		}
 
-		return user
+		return {
+			...user,
+			cardNumber: user.cardNumber
+				? decryptCardNumber(user.cardNumber)
+				: null
+		}
 	}
 
 	public async findByIdSafe(id: string) {
@@ -129,7 +138,16 @@ export class UserService {
 				displayName: dto.name,
 				email: dto.email,
 				isTwoFactorEnabled: dto.isTwoFactorEnabled,
-				...(dto.picture !== undefined && { picture: dto.picture })
+				...(dto.picture !== undefined && { picture: dto.picture }),
+				...(dto.cardNumber !== undefined && {
+					cardNumber:
+						dto.cardNumber !== null
+							? encryptCardNumber(dto.cardNumber)
+							: null
+				}),
+				...(dto.cardVisibility !== undefined && {
+					cardVisibility: dto.cardVisibility
+				})
 			}
 		})
 

@@ -59,6 +59,18 @@ export type I18nTranslations = {
                     "uuid": string;
                 };
             };
+            "card_request": {
+                "title": string;
+                "message": string;
+            };
+            "card_request_approved": {
+                "title": string;
+                "message": string;
+            };
+            "card_request_denied": {
+                "title": string;
+                "message": string;
+            };
         };
         "auth": {
             "register": {

@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "Verwandte Schulden-ID muss eine gültige UUID sein."
       }
+    },
+    "card_request": {
+      "title": "Kartennummer-Anfrage",
+      "message": "{{requesterName}} fordert Zugriff auf Ihre Kartennummer an"
+    },
+    "card_request_approved": {
+      "title": "Kartenanfrage genehmigt",
+      "message": "{{targetName}} hat Ihre Kartennummer-Anfrage genehmigt"
+    },
+    "card_request_denied": {
+      "title": "Kartenanfrage abgelehnt",
+      "message": "{{targetName}} hat Ihre Kartennummer-Anfrage abgelehnt"
     }
   },
   "auth": {

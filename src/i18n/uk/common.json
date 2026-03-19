@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "ID пов'язаного боргу має бути валідним UUID."
       }
+    },
+    "card_request": {
+      "title": "Запит номера картки",
+      "message": "{{requesterName}} запитує доступ до вашого номера картки"
+    },
+    "card_request_approved": {
+      "title": "Запит на картку схвалено",
+      "message": "{{targetName}} схвалив ваш запит на номер картки"
+    },
+    "card_request_denied": {
+      "title": "Запит на картку відхилено",
+      "message": "{{targetName}} відхилив ваш запит на номер картки"
     }
   },
   "auth": {

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common'
-import { I18nService, I18nContext } from 'nestjs-i18n'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateNotificationDto } from './dto/create-notification.dto'
 import { UpdateNotificationDto } from './dto/update-notification.dto'
@@ -8,10 +7,7 @@ import { NotificationType, Prisma } from '@prisma/client'
 
 @Injectable()
 export class NotificationsService {
-	constructor(
-		private readonly prisma: PrismaService,
-		private readonly i18n: I18nService
-	) {}
+	constructor(private readonly prisma: PrismaService) {}
 
 	async create(
 		createNotificationDto: CreateNotificationDto
@@ -58,11 +54,7 @@ export class NotificationsService {
 		})
 
 		if (!notification) {
-			throw new Error(
-				this.i18n.t('common.errors.notification_not_found', {
-					lang: I18nContext.current()?.lang
-				})
-			)
+			throw new Error('Notification not found')
 		}
 
 		return this.mapToResponseDto(notification)
@@ -105,11 +97,7 @@ export class NotificationsService {
 		})
 
 		if (!existingNotification) {
-			throw new Error(
-				this.i18n.t('common.errors.notification_not_found', {
-					lang: I18nContext.current()?.lang
-				})
-			)
+			throw new Error('Notification not found')
 		}
 
 		await this.prisma.notification.delete({
@@ -132,16 +120,8 @@ export class NotificationsService {
 		return this.create({
 			userId: receiverId,
 			type: NotificationType.FRIEND_REQUEST,
-			title: this.i18n.t('common.notifications.friend_request.title', {
-				lang: I18nContext.current()?.lang
-			}),
-			message: this.i18n.t(
-				'common.notifications.friend_request.message',
-				{
-					lang: I18nContext.current()?.lang,
-					args: { senderName }
-				}
-			),
+			title: 'friends.notifications.friend_request.title',
+			message: 'friends.notifications.friend_request.message',
 			relatedUserId: senderId,
 			metadata: { senderName }
 		})
@@ -156,16 +136,8 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.GROUP_INVITATION,
-			title: this.i18n.t('common.notifications.group_invitation.title', {
-				lang: I18nContext.current()?.lang
-			}),
-			message: this.i18n.t(
-				'common.notifications.group_invitation.message',
-				{
-					lang: I18nContext.current()?.lang,
-					args: { inviterName, groupName }
-				}
-			),
+			title: 'groups.notifications.group_invitation.title',
+			message: 'groups.notifications.group_invitation.message',
 			relatedGroupId: groupId,
 			metadata: { groupName, inviterName }
 		})
@@ -181,13 +153,8 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.EXPENSE_ADDED,
-			title: this.i18n.t('common.notifications.expense_added.title', {
-				lang: I18nContext.current()?.lang
-			}),
-			message: this.i18n.t('common.notifications.expense_added.message', {
-				lang: I18nContext.current()?.lang,
-				args: { expenseDescription, groupName, amount }
-			}),
+			title: 'expenses.notifications.expense_added.title',
+			message: 'expenses.notifications.expense_added.message',
 			relatedExpenseId: expenseId,
 			metadata: { expenseDescription, groupName, amount }
 		})
@@ -200,25 +167,58 @@ export class NotificationsService {
 		amount: number,
 		isDebtor: boolean
 	): Promise<NotificationResponseDto> {
-		const titleKey = isDebtor
-			? 'notifications.debt_created.title_debtor'
-			: 'notifications.debt_created.title_creditor'
-		const messageKey = isDebtor
-			? 'notifications.debt_created.message_debtor'
-			: 'notifications.debt_created.message_creditor'
-
 		return this.create({
 			userId,
 			type: NotificationType.DEBT_CREATED,
-			title: this.i18n.t(titleKey, {
-				lang: I18nContext.current()?.lang
-			}),
-			message: this.i18n.t(messageKey, {
-				lang: I18nContext.current()?.lang,
-				args: { amount, expenseDescription }
-			}),
+			title: isDebtor
+				? 'debts.notifications.debt_created.title_debtor'
+				: 'debts.notifications.debt_created.title_creditor',
+			message: isDebtor
+				? 'debts.notifications.debt_created.message_debtor'
+				: 'debts.notifications.debt_created.message_creditor',
 			relatedDebtId: debtId,
 			metadata: { expenseDescription, amount, isDebtor }
+		})
+	}
+
+	async createCardRequestNotification(
+		targetId: string,
+		requesterId: string,
+		requesterName: string
+	): Promise<NotificationResponseDto> {
+		return this.create({
+			userId: targetId,
+			type: NotificationType.CARD_REQUEST,
+			title: 'card-requests.notifications.card_request.title',
+			message: 'card-requests.notifications.card_request.message',
+			relatedUserId: requesterId,
+			metadata: { requesterName }
+		})
+	}
+
+	async createCardRequestApprovedNotification(
+		requesterId: string,
+		targetName: string
+	): Promise<NotificationResponseDto> {
+		return this.create({
+			userId: requesterId,
+			type: NotificationType.CARD_REQUEST_APPROVED,
+			title: 'card-requests.notifications.card_request_approved.title',
+			message: 'card-requests.notifications.card_request_approved.message',
+			metadata: { targetName }
+		})
+	}
+
+	async createCardRequestDeniedNotification(
+		requesterId: string,
+		targetName: string
+	): Promise<NotificationResponseDto> {
+		return this.create({
+			userId: requesterId,
+			type: NotificationType.CARD_REQUEST_DENIED,
+			title: 'card-requests.notifications.card_request_denied.title',
+			message: 'card-requests.notifications.card_request_denied.message',
+			metadata: { targetName }
 		})
 	}
 
@@ -231,17 +231,8 @@ export class NotificationsService {
 		return this.create({
 			userId,
 			type: NotificationType.USER_REMOVED_FROM_GROUP,
-			title: this.i18n.t(
-				'common.notifications.user_removed_from_group.title',
-				{ lang: I18nContext.current()?.lang }
-			),
-			message: this.i18n.t(
-				'notifications.user_removed_from_group.message',
-				{
-					lang: I18nContext.current()?.lang,
-					args: { removerName, groupName }
-				}
-			),
+			title: 'groups.notifications.user_removed_from_group.title',
+			message: 'groups.notifications.user_removed_from_group.message',
 			relatedGroupId: groupId,
 			metadata: { groupName, removerName }
 		})

@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "ID dette liée doit être un UUID valide."
       }
+    },
+    "card_request": {
+      "title": "Demande de numéro de carte",
+      "message": "{{requesterName}} demande accès à votre numéro de carte"
+    },
+    "card_request_approved": {
+      "title": "Demande de carte approuvée",
+      "message": "{{targetName}} a approuvé votre demande de numéro de carte"
+    },
+    "card_request_denied": {
+      "title": "Demande de carte refusée",
+      "message": "{{targetName}} a refusé votre demande de numéro de carte"
     }
   },
   "auth": {

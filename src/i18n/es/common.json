@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "ID de deuda relacionada debe ser un UUID válido."
       }
+    },
+    "card_request": {
+      "title": "Solicitud de número de tarjeta",
+      "message": "{{requesterName}} solicita acceso a su número de tarjeta"
+    },
+    "card_request_approved": {
+      "title": "Solicitud de tarjeta aprobada",
+      "message": "{{targetName}} aprobó su solicitud de número de tarjeta"
+    },
+    "card_request_denied": {
+      "title": "Solicitud de tarjeta denegada",
+      "message": "{{targetName}} denegó su solicitud de número de tarjeta"
     }
   },
   "auth": {

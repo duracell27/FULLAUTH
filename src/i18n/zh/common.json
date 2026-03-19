@@ -51,6 +51,18 @@
       "related_debt_id": {
         "uuid": "相关债务ID必须是有效的UUID。"
       }
+    },
+    "card_request": {
+      "title": "银行卡号请求",
+      "message": "{{requesterName}} 请求访问您的银行卡号"
+    },
+    "card_request_approved": {
+      "title": "银行卡请求已批准",
+      "message": "{{targetName}} 批准了您的银行卡号请求"
+    },
+    "card_request_denied": {
+      "title": "银行卡请求已拒绝",
+      "message": "{{targetName}} 拒绝了您的银行卡号请求"
     }
   },
   "auth": {

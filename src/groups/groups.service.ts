@@ -7,6 +7,7 @@ import { GroupMemberStatus, GroupRole } from '@prisma/client'
 import { NotificationsService } from '../notifications/notifications.service'
 import { I18nService, I18nContext } from 'nestjs-i18n'
 import type { Prisma } from '@prisma/client'
+import { decryptCardNumber } from '@/libs/common/utils/card-crypto.util'
 
 type GroupWithMembers = {
 	id: string
@@ -27,6 +28,8 @@ type GroupWithMembers = {
 			id: string
 			displayName: string
 			picture: string | null
+			cardNumber: string | null
+			cardVisibility: string
 		}
 	}[]
 	memberBalanceDetails: {
@@ -34,6 +37,8 @@ type GroupWithMembers = {
 			id: string
 			displayName: string
 			picture: string | null
+			cardNumber: string | null
+			cardVisibility: string
 		}
 		role: GroupRole
 		totalBalance: number
@@ -42,6 +47,8 @@ type GroupWithMembers = {
 				id: string
 				displayName: string
 				picture: string | null
+				cardNumber: string | null
+				cardVisibility: string
 			}
 			amount: number
 			type: 'owes_to_member' | 'member_owes_to'
@@ -437,7 +444,9 @@ export class GroupsService {
 							select: {
 								id: true,
 								displayName: true,
-								picture: true
+								picture: true,
+								cardNumber: true,
+								cardVisibility: true
 							}
 						}
 					}
@@ -776,18 +785,23 @@ export class GroupsService {
 		// Створюємо Map для швидкого доступу до користувачів
 		const usersMap = new Map<
 			string,
-			{ id: string; displayName: string; picture: string | null }
+			{ id: string; displayName: string; picture: string | null; cardNumber: string | null; cardVisibility: string }
 		>()
 		for (const member of group.members) {
-			usersMap.set(member.userId, member.user)
+			usersMap.set(member.userId, {
+				...member.user,
+				cardNumber: member.user.cardNumber
+					? decryptCardNumber(member.user.cardNumber)
+					: null
+			})
 		}
 
 		// Розраховуємо overpays (коли платежів більше ніж боргів)
 		// Overpay виникає коли баланс між двома користувачами негативний
 		// (тобто хтось переплатив через видалення витрат)
 		type Overpay = {
-			from: { id: string; displayName: string; picture: string | null }
-			to: { id: string; displayName: string; picture: string | null }
+			from: { id: string; displayName: string; picture: string | null; cardNumber: string | null; cardVisibility: string }
+			to: { id: string; displayName: string; picture: string | null; cardNumber: string | null; cardVisibility: string }
 			amount: number
 			payments: PaymentDetail[]
 		}
@@ -848,6 +862,8 @@ export class GroupsService {
 				id: string
 				displayName: string
 				picture: string | null
+				cardNumber: string | null
+				cardVisibility: string
 			}
 			role: GroupRole
 			totalBalance: number
@@ -856,6 +872,8 @@ export class GroupsService {
 					id: string
 					displayName: string
 					picture: string | null
+					cardNumber: string | null
+					cardVisibility: string
 				}
 				amount: number
 				type: 'owes_to_member' | 'member_owes_to'
@@ -896,6 +914,8 @@ export class GroupsService {
 							id: string
 							displayName: string
 							picture: string | null
+							cardNumber: string | null
+							cardVisibility: string
 						}
 						amount: number
 						type: 'owes_to_member' | 'member_owes_to'
