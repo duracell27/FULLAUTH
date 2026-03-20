@@ -4,7 +4,9 @@ import {
 	MaxLength,
 	IsDate,
 	IsOptional,
-	IsBoolean
+	IsBoolean,
+	IsInt,
+	Min
 } from 'class-validator'
 import { Type } from 'class-transformer'
 
@@ -35,4 +37,17 @@ export class UpdateGroupDto {
 	@IsBoolean({ message: 'groups.validation.is_finished.boolean' })
 	@IsOptional()
 	isFinished?: boolean
+
+	@IsBoolean()
+	@IsOptional()
+	isPublic?: boolean
+
+	@IsBoolean()
+	@IsOptional()
+	showMembers?: boolean
+
+	@IsInt()
+	@Min(2)
+	@IsOptional()
+	maxMembers?: number
 }

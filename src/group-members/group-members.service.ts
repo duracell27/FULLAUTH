@@ -4,7 +4,7 @@ import { MailService } from '@/libs/mail/mail.service'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UserService } from '@/user/user.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { GroupEntity, GroupMemberStatus, GroupRole, User } from '@prisma/client'
+import { GroupEntity, GroupMemberInitiator, GroupMemberStatus, GroupRole, User } from '@prisma/client'
 import { NotificationsService } from '@/notifications/notifications.service'
 import { I18nService, I18nContext } from 'nestjs-i18n'
 
@@ -344,6 +344,7 @@ export class GroupMembersService {
 				where: {
 					userId: userId,
 					status: GroupMemberStatus.PENDING,
+					initiator: GroupMemberInitiator.ADMIN, // Тільки запрошення від адміна
 					group: {
 						isPersonal: false // Тільки звичайні групи
 					}
@@ -378,6 +379,8 @@ export class GroupMembersService {
 				status: GroupMemberStatus.ACCEPTED
 			}
 		})
+
+		await this.closeGroupIfFull(groupId)
 
 		// Отримуємо назву групи та інформацію про користувача
 		const groupName = await this.groupService.getGroupName(groupId)
@@ -557,6 +560,10 @@ export class GroupMembersService {
 			}
 		})
 
+		if (isUserFriends) {
+			await this.closeGroupIfFull(groupId)
+		}
+
 		// Отримуємо ім'я користувача, який додає
 		const senderUser = await this.userService.findById(senderUserId)
 
@@ -693,6 +700,26 @@ export class GroupMembersService {
 		})
 
 		return true
+	}
+
+	private async closeGroupIfFull(groupId: string): Promise<void> {
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: groupId },
+			select: { isPublic: true, maxMembers: true }
+		})
+
+		if (!group?.isPublic || group.maxMembers === null) return
+
+		const acceptedCount = await this.prismaService.groupMember.count({
+			where: { groupId, status: GroupMemberStatus.ACCEPTED }
+		})
+
+		if (acceptedCount >= group.maxMembers) {
+			await this.prismaService.groupEntity.update({
+				where: { id: groupId },
+				data: { isPublic: false }
+			})
+		}
 	}
 
 	public async isUserAdminOfGroup(userId: string, groupId: string) {

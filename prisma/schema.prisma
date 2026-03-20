@@ -85,6 +85,9 @@ model GroupEntity {
   avatarUrl               String?        @map("avatar_url")
   isLocked                Boolean        @default(false) @map("is_locked")
   isFinished              Boolean        @default(false) @map("is_finished")
+  isPublic                Boolean        @default(false) @map("is_public")
+  showMembers             Boolean        @default(true) @map("show_members")
+  maxMembers              Int?           @map("max_members")
   eventDate               DateTime       @default(now()) @map("date")
   createdAt               DateTime       @default(now()) @map("created_at")
   updatedAt               DateTime       @updatedAt @map("updated_at")
@@ -101,13 +104,14 @@ model GroupEntity {
 }
 
 model GroupMember {
-  userId   String            @map("user_id")
-  groupId  String            @map("group_id")
-  role     GroupRole         @default(MEMBER)
-  status   GroupMemberStatus @default(PENDING)
-  joinedAt DateTime          @default(now()) @map("joined_at")
-  group    GroupEntity       @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String                @map("user_id")
+  groupId   String                @map("group_id")
+  role      GroupRole             @default(MEMBER)
+  status    GroupMemberStatus     @default(PENDING)
+  initiator GroupMemberInitiator  @default(ADMIN) @map("initiator")
+  joinedAt  DateTime              @default(now()) @map("joined_at")
+  group     GroupEntity           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, groupId])
   @@map("group_members")
@@ -270,6 +274,11 @@ enum GroupMemberStatus {
   REJECTED
 }
 
+enum GroupMemberInitiator {
+  ADMIN
+  USER
+}
+
 enum DebtStatus {
   PENDING
   SETTLED
@@ -305,4 +314,7 @@ enum NotificationType {
   CARD_REQUEST
   CARD_REQUEST_APPROVED
   CARD_REQUEST_DENIED
+  GROUP_JOIN_REQUEST
+  GROUP_JOIN_REQUEST_ACCEPTED
+  GROUP_JOIN_REQUEST_REJECTED
 }

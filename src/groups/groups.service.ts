@@ -3,7 +3,7 @@ import { CreateGroupDto } from './dto/CreateGroupDto'
 import { CreatePersonalGroupDto } from './dto/CreatePersonalGroupDto'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UpdateGroupDto } from './dto/UpdateGroupDto'
-import { GroupMemberStatus, GroupRole } from '@prisma/client'
+import { GroupMemberInitiator, GroupMemberStatus, GroupRole } from '@prisma/client'
 import { NotificationsService } from '../notifications/notifications.service'
 import { I18nService, I18nContext } from 'nestjs-i18n'
 import type { Prisma } from '@prisma/client'
@@ -16,6 +16,9 @@ type GroupWithMembers = {
 	isLocked: boolean
 	isFinished: boolean
 	isPersonal: boolean
+	isPublic: boolean
+	showMembers: boolean
+	maxMembers: number | null
 	totalExpenses: number
 	userTotalExpenses: number
 	userTotalBalance: number
@@ -24,6 +27,8 @@ type GroupWithMembers = {
 	members: {
 		userId: string
 		role: GroupRole
+		status: GroupMemberStatus
+		initiator: string
 		user: {
 			id: string
 			displayName: string
@@ -71,7 +76,10 @@ export class GroupsService {
 				data: {
 					name: dto.name,
 					avatarUrl: dto.avatarUrl,
-					eventDate: dto.eventDate
+					eventDate: dto.eventDate,
+					isPublic: dto.isPublic ?? false,
+					showMembers: dto.showMembers ?? true,
+					maxMembers: dto.maxMembers ?? null
 				}
 			})
 
@@ -306,7 +314,14 @@ export class GroupsService {
 				avatarUrl: dto.avatarUrl,
 				eventDate: dto.eventDate,
 				isLocked: dto.isLocked,
-				isFinished: dto.isFinished
+				isFinished: dto.isFinished,
+				...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
+				...(dto.showMembers !== undefined && {
+					showMembers: dto.showMembers
+				}),
+				...(dto.maxMembers !== undefined && {
+					maxMembers: dto.maxMembers
+				})
 			}
 		})
 
@@ -426,6 +441,9 @@ export class GroupsService {
 				isFinished: true,
 				isSimplified: true,
 				isPersonal: true,
+				isPublic: true,
+				showMembers: true,
+				maxMembers: true,
 				createdAt: true,
 				members: {
 					where: {
@@ -440,6 +458,7 @@ export class GroupsService {
 						userId: true,
 						role: true,
 						status: true,
+						initiator: true,
 						user: {
 							select: {
 								id: true,
@@ -1040,6 +1059,268 @@ export class GroupsService {
 			paymentsBetweenMembers,
 			overpays
 		} as GroupWithMembers
+	}
+
+	public async getPublicGroupInfo(groupId: string, userId?: string) {
+		const group = await this.prismaService.groupEntity.findFirst({
+			where: { id: groupId, isPublic: true },
+			select: {
+				id: true,
+				name: true,
+				avatarUrl: true,
+				createdAt: true,
+				isPublic: true,
+				showMembers: true,
+				maxMembers: true,
+				members: {
+					where: { status: GroupMemberStatus.ACCEPTED },
+					select: {
+						userId: true,
+						user: {
+							select: {
+								id: true,
+								displayName: true,
+								picture: true
+							}
+						}
+					}
+				}
+			}
+		})
+
+		if (!group) {
+			throw new BadRequestException(
+				this.i18n.t('common.groups.errors.group_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
+		// Перевіряємо статус поточного юзера
+		let currentUserStatus: GroupMemberStatus | null = null
+		if (userId) {
+			const membership =
+				await this.prismaService.groupMember.findUnique({
+					where: { userId_groupId: { userId, groupId } },
+					select: { status: true }
+				})
+			currentUserStatus = membership?.status ?? null
+		}
+
+		return {
+			id: group.id,
+			name: group.name,
+			avatarUrl: group.avatarUrl,
+			createdAt: group.createdAt,
+			isPublic: group.isPublic,
+			showMembers: group.showMembers,
+			maxMembers: group.maxMembers,
+			membersCount: group.members.length,
+			members: group.showMembers ? group.members : undefined,
+			currentUserStatus
+		}
+	}
+
+	public async requestToJoin(groupId: string, userId: string) {
+		const group = await this.prismaService.groupEntity.findFirst({
+			where: { id: groupId },
+			select: {
+				isPublic: true,
+				name: true,
+				maxMembers: true,
+				members: {
+					where: { status: GroupMemberStatus.ACCEPTED },
+					select: { userId: true, role: true }
+				}
+			}
+		})
+
+		if (!group || !group.isPublic) {
+			throw new BadRequestException(
+				this.i18n.t('common.groups.errors.group_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
+		// Перевіряємо чи вже є членом
+		const existingMembership =
+			await this.prismaService.groupMember.findUnique({
+				where: { userId_groupId: { userId, groupId } }
+			})
+
+		if (existingMembership) {
+			if (existingMembership.status === GroupMemberStatus.ACCEPTED) {
+				throw new BadRequestException('Already a member of this group')
+			}
+			if (existingMembership.status === GroupMemberStatus.PENDING) {
+				throw new BadRequestException(
+					'Join request already submitted'
+				)
+			}
+			// REJECTED — дозволяємо повторну заявку
+			await this.prismaService.groupMember.update({
+				where: { userId_groupId: { userId, groupId } },
+				data: {
+					status: GroupMemberStatus.PENDING,
+					initiator: GroupMemberInitiator.USER
+				}
+			})
+		} else {
+			// Перевіряємо maxMembers
+			if (
+				group.maxMembers !== null &&
+				group.members.length >= group.maxMembers
+			) {
+				throw new BadRequestException(
+					'Group has reached its maximum member limit'
+				)
+			}
+
+			await this.prismaService.groupMember.create({
+				data: {
+					userId,
+					groupId,
+					role: GroupRole.MEMBER,
+					status: GroupMemberStatus.PENDING,
+					initiator: GroupMemberInitiator.USER
+				}
+			})
+		}
+
+		// Відправляємо сповіщення всім адмінам
+		const requester = await this.prismaService.user.findUnique({
+			where: { id: userId },
+			select: { displayName: true }
+		})
+
+		const admins = group.members.filter(m => m.role === GroupRole.ADMIN)
+		await Promise.all(
+			admins.map(admin =>
+				this.notificationsService.createGroupJoinRequestNotification(
+					admin.userId,
+					groupId,
+					group.name,
+					requester?.displayName ?? '',
+					userId
+				)
+			)
+		)
+
+		return { success: true }
+	}
+
+	public async respondToJoinRequest(
+		groupId: string,
+		requesterId: string,
+		adminId: string,
+		accept: boolean
+	) {
+		// Перевіряємо що adminId є адміном групи
+		const adminMembership =
+			await this.prismaService.groupMember.findFirst({
+				where: {
+					userId: adminId,
+					groupId,
+					role: GroupRole.ADMIN,
+					status: GroupMemberStatus.ACCEPTED
+				}
+			})
+
+		if (!adminMembership) {
+			throw new BadRequestException(
+				this.i18n.t('common.groups.errors.not_group_admin', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
+		// Перевіряємо що requesterId має PENDING статус
+		const requesterMembership =
+			await this.prismaService.groupMember.findUnique({
+				where: { userId_groupId: { userId: requesterId, groupId } }
+			})
+
+		if (
+			!requesterMembership ||
+			requesterMembership.status !== GroupMemberStatus.PENDING
+		) {
+			throw new BadRequestException('No pending join request found')
+		}
+
+		if (requesterMembership.initiator !== GroupMemberInitiator.USER) {
+			throw new BadRequestException(
+				'Cannot respond to an admin invitation — only the invited user can accept or reject it'
+			)
+		}
+
+		const group = await this.prismaService.groupEntity.findUnique({
+			where: { id: groupId },
+			select: {
+				name: true,
+				maxMembers: true,
+				members: {
+					where: { status: GroupMemberStatus.ACCEPTED },
+					select: { userId: true }
+				}
+			}
+		})
+
+		if (!group) {
+			throw new BadRequestException(
+				this.i18n.t('common.groups.errors.group_not_found', {
+					lang: I18nContext.current()?.lang
+				})
+			)
+		}
+
+		if (accept) {
+			// Перевіряємо maxMembers ще раз перед прийняттям
+			if (
+				group.maxMembers !== null &&
+				group.members.length >= group.maxMembers
+			) {
+				throw new BadRequestException(
+					'Group has reached its maximum member limit'
+				)
+			}
+
+			await this.prismaService.groupMember.update({
+				where: { userId_groupId: { userId: requesterId, groupId } },
+				data: { status: GroupMemberStatus.ACCEPTED }
+			})
+
+			// Перевіряємо чи треба закрити публічний доступ
+			const newMemberCount = group.members.length + 1
+			if (
+				group.maxMembers !== null &&
+				newMemberCount >= group.maxMembers
+			) {
+				await this.prismaService.groupEntity.update({
+					where: { id: groupId },
+					data: { isPublic: false }
+				})
+			}
+
+			await this.notificationsService.createGroupJoinRequestAcceptedNotification(
+				requesterId,
+				groupId,
+				group.name
+			)
+		} else {
+			await this.prismaService.groupMember.update({
+				where: { userId_groupId: { userId: requesterId, groupId } },
+				data: { status: GroupMemberStatus.REJECTED }
+			})
+
+			await this.notificationsService.createGroupJoinRequestRejectedNotification(
+				requesterId,
+				groupId,
+				group.name
+			)
+		}
+
+		return { success: true }
 	}
 
 	public async isGroupExsist(groupId: string) {

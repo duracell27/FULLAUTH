@@ -222,6 +222,54 @@ export class NotificationsService {
 		})
 	}
 
+	async createGroupJoinRequestNotification(
+		adminId: string,
+		groupId: string,
+		groupName: string,
+		requesterName: string,
+		requesterId: string
+	): Promise<NotificationResponseDto> {
+		return this.create({
+			userId: adminId,
+			type: NotificationType.GROUP_JOIN_REQUEST,
+			title: 'groups.notifications.group_join_request.title',
+			message: 'groups.notifications.group_join_request.message',
+			relatedGroupId: groupId,
+			relatedUserId: requesterId,
+			metadata: { groupName, requesterName, groupId }
+		})
+	}
+
+	async createGroupJoinRequestAcceptedNotification(
+		userId: string,
+		groupId: string,
+		groupName: string
+	): Promise<NotificationResponseDto> {
+		return this.create({
+			userId,
+			type: NotificationType.GROUP_JOIN_REQUEST_ACCEPTED,
+			title: 'groups.notifications.group_join_request_accepted.title',
+			message: 'groups.notifications.group_join_request_accepted.message',
+			relatedGroupId: groupId,
+			metadata: { groupName, groupId }
+		})
+	}
+
+	async createGroupJoinRequestRejectedNotification(
+		userId: string,
+		groupId: string,
+		groupName: string
+	): Promise<NotificationResponseDto> {
+		return this.create({
+			userId,
+			type: NotificationType.GROUP_JOIN_REQUEST_REJECTED,
+			title: 'groups.notifications.group_join_request_rejected.title',
+			message: 'groups.notifications.group_join_request_rejected.message',
+			relatedGroupId: groupId,
+			metadata: { groupName, groupId }
+		})
+	}
+
 	async createUserRemovedFromGroupNotification(
 		userId: string,
 		groupId: string,
