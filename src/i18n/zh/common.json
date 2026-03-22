@@ -228,7 +228,9 @@
       "not_group_admin": "您不是此群组的管理员",
       "cannot_remove_from_personal": "不能从个人群组中移除用户。个人群组设计为正好有2个成员。",
       "user_not_in_group": "用户不在群组中",
-      "user_involved_in_expenses": "用户参与群组支出或债务，无法移除。"
+      "user_involved_in_expenses": "用户参与群组支出或债务，无法移除。",
+      "admin_cannot_leave": "群组管理员无法离开群组",
+      "user_has_unsettled_balance": "您在此群组中有未结清的债务或信用"
     }
   },
   "groups": {

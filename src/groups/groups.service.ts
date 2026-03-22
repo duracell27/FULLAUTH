@@ -325,6 +325,25 @@ export class GroupsService {
 			}
 		})
 
+		// Якщо встановили maxMembers і група публічна — перевіряємо чи вже перевищено ліміт
+		if (dto.maxMembers !== undefined && group.isPublic) {
+			const acceptedCount =
+				await this.prismaService.groupMember.count({
+					where: {
+						groupId: dto.groupId,
+						status: GroupMemberStatus.ACCEPTED
+					}
+				})
+
+			if (acceptedCount >= dto.maxMembers) {
+				await this.prismaService.groupEntity.update({
+					where: { id: dto.groupId },
+					data: { isPublic: false }
+				})
+				return { ...group, isPublic: false }
+			}
+		}
+
 		return group
 	}
 

@@ -320,6 +320,8 @@ export type I18nTranslations = {
                 "cannot_remove_from_personal": string;
                 "user_not_in_group": string;
                 "user_involved_in_expenses": string;
+                "admin_cannot_leave": string;
+                "user_has_unsettled_balance": string;
             };
             "notifications": {
                 "invitation_accepted": {

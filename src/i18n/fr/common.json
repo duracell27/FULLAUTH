@@ -228,7 +228,9 @@
       "not_group_admin": "Vous n'êtes pas administrateur de ce groupe",
       "cannot_remove_from_personal": "Les utilisateurs ne peuvent pas être supprimés des groupes personnels. Les groupes personnels sont conçus pour avoir exactement 2 membres.",
       "user_not_in_group": "L'utilisateur n'est pas dans le groupe",
-      "user_involved_in_expenses": "L'utilisateur est impliqué dans les dépenses ou dettes du groupe et ne peut pas être supprimé."
+      "user_involved_in_expenses": "L'utilisateur est impliqué dans les dépenses ou dettes du groupe et ne peut pas être supprimé.",
+      "admin_cannot_leave": "L'administrateur du groupe ne peut pas quitter le groupe",
+      "user_has_unsettled_balance": "Vous avez des dettes ou crédits non réglés dans ce groupe"
     }
   },
   "groups": {

@@ -3,7 +3,7 @@ import { GroupsService } from '@/groups/groups.service'
 import { MailService } from '@/libs/mail/mail.service'
 import { PrismaService } from '@/prisma/prisma.service'
 import { UserService } from '@/user/user.service'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { GroupEntity, GroupMemberInitiator, GroupMemberStatus, GroupRole, User } from '@prisma/client'
 import { NotificationsService } from '@/notifications/notifications.service'
 import { I18nService, I18nContext } from 'nestjs-i18n'
@@ -697,6 +697,46 @@ export class GroupMembersService {
 					groupId: groupId
 				}
 			}
+		})
+
+		return true
+	}
+
+	public async leaveGroup(groupId: string, userId: string) {
+		const membership = await this.prismaService.groupMember.findUnique({
+			where: { userId_groupId: { userId, groupId } }
+		})
+
+		if (!membership || membership.status !== GroupMemberStatus.ACCEPTED) {
+			throw new NotFoundException(
+				this.t('group_members.errors.user_not_in_group')
+			)
+		}
+
+		if (membership.role === GroupRole.ADMIN) {
+			throw new ForbiddenException(
+				this.t('group_members.errors.admin_cannot_leave')
+			)
+		}
+
+		// Перевіряємо чи є незакриті борги
+		const activeDebt = await this.prismaService.debt.findFirst({
+			where: {
+				isActual: true,
+				remaining: { gt: 0.01 },
+				expense: { groupId },
+				OR: [{ debtorId: userId }, { creditorId: userId }]
+			}
+		})
+
+		if (activeDebt) {
+			throw new BadRequestException(
+				this.t('group_members.errors.user_has_unsettled_balance')
+			)
+		}
+
+		await this.prismaService.groupMember.delete({
+			where: { userId_groupId: { userId, groupId } }
 		})
 
 		return true

@@ -228,7 +228,9 @@
       "not_group_admin": "No eres administrador de este grupo",
       "cannot_remove_from_personal": "No se pueden eliminar usuarios de grupos personales. Los grupos personales están diseñados para tener exactamente 2 miembros.",
       "user_not_in_group": "Usuario no está en el grupo",
-      "user_involved_in_expenses": "Usuario está involucrado en gastos o deudas del grupo y no puede ser eliminado."
+      "user_involved_in_expenses": "Usuario está involucrado en gastos o deudas del grupo y no puede ser eliminado.",
+      "admin_cannot_leave": "El administrador del grupo no puede abandonar el grupo",
+      "user_has_unsettled_balance": "Tienes deudas o créditos pendientes en este grupo"
     }
   },
   "groups": {

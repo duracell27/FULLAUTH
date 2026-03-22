@@ -117,4 +117,14 @@ export class GroupMembersController {
 			userId
 		)
 	}
+
+	@Authorization()
+	@HttpCode(HttpStatus.OK)
+	@Delete('leave')
+	public async LeaveGroup(
+		@Authorized('id') userId: string,
+		@Body() dto: updateAddUserToGroupRequestDto
+	) {
+		return this.groupMembersService.leaveGroup(dto.groupId, userId)
+	}
 }

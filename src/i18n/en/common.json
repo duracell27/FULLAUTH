@@ -244,7 +244,9 @@
       "not_group_admin": "You are not admin of this group",
       "cannot_remove_from_personal": "Cannot remove users from personal groups. Personal groups are designed to have exactly 2 members.",
       "user_not_in_group": "User is not in the group",
-      "user_involved_in_expenses": "User is involved in group expenses or debts and cannot be removed."
+      "user_involved_in_expenses": "User is involved in group expenses or debts and cannot be removed.",
+      "admin_cannot_leave": "The group admin cannot leave the group",
+      "user_has_unsettled_balance": "You have unsettled debts or credits in this group"
     },
     "notifications": {
       "invitation_accepted": {

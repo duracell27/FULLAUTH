@@ -228,7 +228,9 @@
       "not_group_admin": "Bu grubun yöneticisi değilsiniz",
       "cannot_remove_from_personal": "Kullanıcılar kişisel gruplardan çıkarılamaz. Kişisel gruplar tam olarak 2 üyeye sahip olacak şekilde tasarlanmıştır.",
       "user_not_in_group": "Kullanıcı grupta değil",
-      "user_involved_in_expenses": "Kullanıcı grup harcamalarında veya borçlarında yer alıyor ve çıkarılamaz."
+      "user_involved_in_expenses": "Kullanıcı grup harcamalarında veya borçlarında yer alıyor ve çıkarılamaz.",
+      "admin_cannot_leave": "Grup yöneticisi gruptan ayrılamaz",
+      "user_has_unsettled_balance": "Bu grupta kapatılmamış borçlarınız veya alacaklarınız var"
     }
   },
   "groups": {
